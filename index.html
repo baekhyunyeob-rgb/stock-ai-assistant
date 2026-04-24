@@ -2,813 +2,877 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>한국주식 AI 어시스턴트</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stock AI Assistant</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #efefef;
-  --bg-info: #e8f0fe;
-  --bg-danger: #fce8e6;
-  --bg-warning: #fef7e0;
-  --text-primary: #1a1a1a;
-  --text-secondary: #666;
-  --text-tertiary: #999;
-  --text-info: #1a73e8;
-  --text-danger: #d93025;
-  --text-warning: #b06000;
-  --border: #e0e0e0;
-  --border-strong: #ccc;
-  --radius: 12px;
-  --radius-sm: 8px;
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f2f2f7;--bg1:#fff;--bg2:#f5f5f7;--bg3:#e8e8ed;
+  --info:#007AFF;--info-bg:#e8f0fe;--info-light:rgba(0,122,255,.12);
+  --danger:#FF3B30;--danger-bg:#fff0ef;
+  --warn:#FF9500;--warn-bg:#fff8ee;
+  --success:#34C759;--success-bg:#edfaf1;
+  --text:#000;--text2:#3a3a3c;--text3:#8e8e93;--text4:#c7c7cc;
+  --border:#e5e5ea;--border2:#d1d1d6;
+  --r:14px;--rs:10px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1e1e1e;
-    --bg-secondary: #2a2a2a;
-    --bg-tertiary: #121212;
-    --bg-info: #1a2a4a;
-    --bg-danger: #3a1a1a;
-    --bg-warning: #3a2a00;
-    --text-primary: #f0f0f0;
-    --text-secondary: #aaa;
-    --text-tertiary: #666;
-    --text-info: #7ab4f5;
-    --text-danger: #f28b82;
-    --text-warning: #fdd663;
-    --border: #333;
-    --border-strong: #444;
-  }
-}
-body {
-  font-family: -apple-system, 'Malgun Gothic', sans-serif;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  max-width: 480px;
-  margin: 0 auto;
-  box-shadow: 0 0 40px rgba(0,0,0,0.15);
+@media(prefers-color-scheme:dark){:root{
+  --bg:#000;--bg1:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;
+  --info:#0A84FF;--info-bg:#0c1f3d;--info-light:rgba(10,132,255,.15);
+  --danger:#FF453A;--danger-bg:#2d0f0e;
+  --warn:#FF9F0A;--warn-bg:#2a1d00;
+  --success:#30D158;--success-bg:#0d2518;
+  --text:#fff;--text2:#ebebf5;--text3:#8e8e93;--text4:#48484a;
+  --border:#38383a;--border2:#48484a;
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+}}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+  max-width:430px;margin:0 auto;height:100dvh;
 }
 
-/* NAV */
-.bottom-nav {
-  display: flex;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
+/* APP HEADER */
+.app-header{
+  flex-shrink:0;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:.5px solid var(--border);
+  display:flex;align-items:center;padding:10px 16px;gap:12px;
 }
-.nav-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 8px 4px 12px;
-  font-size: 10px;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s;
-  font-family: inherit;
+@media(prefers-color-scheme:dark){.app-header{background:rgba(28,28,30,.88)}}
+.app-logo{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#007AFF,#5856D6);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 2px 8px rgba(0,122,255,.35);
 }
-.nav-btn.active { color: var(--text-info); }
-.nav-icon { font-size: 20px; }
+.app-name-wrap{flex:1}
+.app-name-main{
+  font-size:15px;font-weight:700;letter-spacing:-.4px;
+  background:linear-gradient(90deg,#007AFF,#5856D6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.app-name-sub{font-size:10px;color:var(--text3);margin-top:1px;letter-spacing:.03em}
+.live-pill{display:flex;align-items:center;gap:5px;background:var(--success-bg);padding:4px 9px;border-radius:20px;flex-shrink:0}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+.live-text{font-size:10px;color:var(--success);font-weight:600}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* SCREENS */
-.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-.screen.active { display: flex; }
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.screen.active{display:flex}
 
-/* HEADER */
-.screen-header {
-  padding: 16px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+/* BOTTOM NAV */
+.bottom-nav{
+  flex-shrink:0;display:flex;
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:.5px solid var(--border);
+  padding-bottom:max(env(safe-area-inset-bottom,0px),6px);
 }
-.screen-title { font-size: 18px; font-weight: 600; }
-.screen-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+@media(prefers-color-scheme:dark){.bottom-nav{background:rgba(28,28,30,.9)}}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:10px;font-weight:500;color:var(--text3);
+  background:none;border:none;cursor:pointer;font-family:inherit;padding:8px 2px 6px;transition:color .15s;
+}
+.nav-btn.active{color:var(--info)}
+.nav-icon{font-size:23px;line-height:1}
 
-/* CHAT */
-.chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--bg-tertiary);
+/* SECTION HEADER */
+.section-header{
+  flex-shrink:0;padding:12px 16px 10px;
+  background:var(--bg1);border-bottom:.5px solid var(--border);
 }
-.msg {
-  max-width: 86%;
-  padding: 10px 14px;
-  font-size: 14px;
-  line-height: 1.6;
-  word-break: keep-all;
-}
-.msg.ai {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border-radius: 4px 16px 16px 16px;
-  border: 1px solid var(--border);
-}
-.msg.user {
-  background: var(--text-info);
-  color: #fff;
-  align-self: flex-end;
-  border-radius: 16px 4px 16px 16px;
-}
-.msg.system {
-  background: var(--bg-warning);
-  color: var(--text-warning);
-  font-size: 12px;
-  text-align: center;
-  align-self: center;
-  border-radius: 8px;
-  padding: 7px 14px;
-  max-width: 100%;
-}
-.typing { display: flex; gap: 5px; align-items: center; padding: 12px 14px; background: var(--bg-primary); border-radius: 4px 16px 16px 16px; border: 1px solid var(--border); width: fit-content; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); animation: bounce 1s infinite; }
-.dot:nth-child(2) { animation-delay: 0.15s; }
-.dot:nth-child(3) { animation-delay: 0.3s; }
-@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+.section-title{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.section-desc{font-size:12px;color:var(--text3);margin-top:2px}
 
-/* INPUT */
-.input-bar {
-  padding: 10px 12px;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-shrink: 0;
+/* INNER TABS */
+.inner-tabs{display:flex;flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:0 4px}
+.inner-tab{
+  flex:1;padding:11px 6px;font-size:13px;font-weight:500;
+  color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;font-family:inherit;transition:all .2s;
 }
-.input-bar textarea {
-  flex: 1;
-  border: 1px solid var(--border-strong);
-  border-radius: 20px;
-  padding: 10px 15px;
-  font-size: 14px;
-  resize: none;
-  max-height: 120px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-family: inherit;
-  line-height: 1.4;
-  outline: none;
-}
-.input-bar textarea:focus { border-color: var(--text-info); }
-.send-btn {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--text-info);
-  border: none;
-  cursor: pointer;
-  color: #fff;
-  font-size: 18px;
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: opacity 0.15s;
-}
-.send-btn:disabled { opacity: 0.4; cursor: default; }
-.attach-btn {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  font-size: 18px;
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-}
+.inner-tab.active{color:var(--info);border-bottom-color:var(--info)}
 
-/* TABS */
-.tab-strip {
-  display: flex;
-  padding: 8px 12px;
-  gap: 6px;
-  overflow-x: auto;
-  flex-shrink: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
-  scrollbar-width: none;
+/* TAB STRIP */
+.tab-strip{
+  display:flex;gap:6px;padding:8px 12px;overflow-x:auto;flex-shrink:0;
+  background:var(--bg1);border-bottom:.5px solid var(--border);scrollbar-width:none;
 }
-.tab-strip::-webkit-scrollbar { display: none; }
-.tab-chip {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  border: 1px solid var(--border-strong);
-  background: none;
-  cursor: pointer;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  font-family: inherit;
-  transition: all 0.15s;
+.tab-strip::-webkit-scrollbar{display:none}
+.tab-chip{
+  padding:7px 15px;border-radius:20px;font-size:13px;font-weight:500;
+  border:1px solid var(--border2);background:none;cursor:pointer;
+  white-space:nowrap;color:var(--text2);font-family:inherit;transition:all .18s;flex-shrink:0;
 }
-.tab-chip.active {
-  background: var(--text-info);
-  color: #fff;
-  border-color: transparent;
-}
+.tab-chip.active{background:var(--info);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(0,122,255,.3)}
 
 /* TOKEN BAR */
-.token-bar {
-  padding: 5px 16px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
+.token-bar{
+  padding:4px 14px;background:var(--bg2);border-bottom:.5px solid var(--border);
+  display:flex;gap:12px;font-size:11px;color:var(--text3);flex-shrink:0;
 }
-.token-bar b { color: var(--text-secondary); font-weight: 500; }
+.token-bar b{color:var(--text2);font-weight:500}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.chat-area{
+  flex:1;overflow-y:auto;padding:14px 14px 8px;
+  display:flex;flex-direction:column;gap:10px;background:var(--bg);
+}
+.msg{max-width:88%;font-size:14px;line-height:1.65;word-break:keep-all}
+.msg.ai{
+  background:var(--bg1);border:.5px solid var(--border);
+  border-radius:4px 16px 16px 16px;padding:11px 14px;color:var(--text);
+  box-shadow:var(--shadow);
+}
+.msg.user{
+  background:var(--info);color:#fff;align-self:flex-end;
+  border-radius:16px 4px 16px 16px;padding:11px 14px;
+}
+.msg.system{
+  background:var(--warn-bg);color:var(--warn);font-size:12px;
+  text-align:center;align-self:center;border-radius:10px;
+  padding:8px 16px;max-width:96%;line-height:1.6;border:.5px solid var(--border);
+}
+.msg.step-badge{
+  background:var(--info-light);color:var(--info);font-size:12px;font-weight:700;
+  align-self:center;border-radius:20px;padding:5px 16px;
+  border:.5px solid rgba(0,122,255,.2);max-width:96%;text-align:center;
+}
+.typing{
+  display:flex;gap:5px;align-items:center;padding:12px 16px;
+  background:var(--bg1);border:.5px solid var(--border);
+  border-radius:4px 16px 16px 16px;width:fit-content;box-shadow:var(--shadow);
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text4);animation:bonce 1s infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bonce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* INPUT BAR */
+.input-bar{
+  flex-shrink:0;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:.5px solid var(--border);
+}
+@media(prefers-color-scheme:dark){.input-bar{background:rgba(28,28,30,.92)}}
+.img-preview-row{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px 0}
+.img-thumb-wrap{position:relative}
+.img-thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:.5px solid var(--border);display:block}
+.img-remove{
+  position:absolute;top:-5px;right:-5px;width:20px;height:20px;border-radius:50%;
+  background:var(--danger);color:#fff;border:none;font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:700;
+}
+.input-row{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 12px}
+.input-row textarea{
+  flex:1;border:1px solid var(--border2);border-radius:22px;
+  padding:10px 16px;font-size:15px;resize:none;max-height:120px;
+  background:var(--bg2);color:var(--text);font-family:inherit;line-height:1.45;outline:none;
+  transition:border-color .2s;
+}
+.input-row textarea:focus{border-color:var(--info)}
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border2);background:var(--bg2);
+  font-size:19px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.send-btn{
+  width:40px;height:40px;border-radius:50%;
+  background:var(--info);border:none;color:#fff;font-size:20px;cursor:pointer;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:opacity .15s;box-shadow:0 2px 8px rgba(0,122,255,.35);
+}
+.send-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
+
+/* DISCOVERY STEP PROGRESS */
+.step-bar{
+  flex-shrink:0;padding:10px 14px 8px;
+  background:var(--bg1);border-bottom:.5px solid var(--border);
+}
+.step-nodes{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:8px}
+.step-node{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--text3);font-weight:500}
+.step-circle{
+  width:26px;height:26px;border-radius:50%;
+  border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--text3);transition:all .3s;cursor:pointer;
+}
+.step-circle.done{background:var(--info);border-color:var(--info);color:#fff}
+.step-circle.active{border-color:var(--info);color:var(--info);background:var(--info-light)}
+.step-line{flex:1;height:1.5px;background:var(--border2);margin:0 3px;margin-bottom:14px;transition:background .3s}
+.step-line.done{background:var(--info)}
+.step-nav{display:flex;gap:8px;justify-content:center}
+.step-nav-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 18px;border-radius:20px;font-size:13px;font-weight:600;
+  border:1px solid var(--border2);background:var(--bg2);color:var(--text2);
+  cursor:pointer;font-family:inherit;transition:all .18s;
+}
+.step-nav-btn:hover{background:var(--bg3)}
+.step-nav-btn.primary{background:var(--info);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(0,122,255,.3)}
+.step-nav-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
 
 /* SETTINGS */
-.settings-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: var(--bg-tertiary);
+.panel{display:none;flex:1;overflow-y:auto;background:var(--bg)}
+.panel.active{display:flex;flex-direction:column}
+.panel-scroll{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.card-label{font-size:11px;font-weight:600;color:var(--text3);padding:12px 16px 4px;letter-spacing:.04em;text-transform:uppercase}
+.row{display:flex;align-items:center;padding:12px 16px;border-top:.5px solid var(--border);gap:10px}
+.row:first-of-type{border-top:none}
+.row-label{font-size:15px;flex:1;color:var(--text)}
+.row select,.row input[type=text]{
+  border:none;background:none;font-size:15px;color:var(--text3);
+  text-align:right;font-family:inherit;outline:none;cursor:pointer;max-width:170px;
 }
-.section-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
+.stock-row{display:flex;align-items:center;padding:12px 16px;border-top:.5px solid var(--border);gap:12px}
+.stock-icon{
+  width:38px;height:38px;border-radius:10px;background:var(--info-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:var(--info);flex-shrink:0;
 }
-.section-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding: 10px 16px 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 500;
+.stock-info{flex:1;min-width:0}
+.stock-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stock-detail{font-size:12px;color:var(--text3);margin-top:2px}
+.del-btn{
+  width:28px;height:28px;border-radius:50%;background:var(--danger-bg);border:none;
+  color:var(--danger);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
-.field-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  gap: 10px;
+.img-upload-zone{
+  margin:12px 16px 6px;border:1.5px dashed var(--border2);border-radius:var(--r);
+  padding:18px 16px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;background:var(--bg2);
 }
-.field-label { font-size: 14px; flex: 1; }
-.field-select, .field-input-text {
-  border: none;
-  background: none;
-  font-size: 14px;
-  color: var(--text-secondary);
-  text-align: right;
-  font-family: inherit;
-  outline: none;
-  cursor: pointer;
+.img-upload-zone:hover{border-color:var(--info);background:var(--info-bg)}
+.img-upload-zone .ico{font-size:28px;margin-bottom:8px}
+.img-upload-zone p{font-size:13px;color:var(--text3);line-height:1.6}
+.img-upload-zone span{font-size:12px;color:var(--text4)}
+.add-row-btn{
+  width:100%;padding:14px 16px;text-align:center;font-size:15px;
+  color:var(--info);background:none;border:none;cursor:pointer;font-family:inherit;
+  border-top:.5px solid var(--border);font-weight:500;
 }
-.stock-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  gap: 10px;
+.disclaimer-card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.disclaimer-head{
+  background:var(--danger);padding:12px 16px;
+  display:flex;align-items:center;gap:8px;
 }
-.stock-name { font-size: 14px; font-weight: 600; }
-.stock-detail { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-.add-btn {
-  width: 100%;
-  padding: 14px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-info);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  border-top: 1px solid var(--border);
-}
-.del-btn {
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  background: var(--bg-danger);
-  border: none;
-  color: var(--text-danger);
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  font-weight: bold;
-}
-.disclaimer {
-  padding: 12px 16px;
-  font-size: 11px;
-  color: var(--text-tertiary);
-  line-height: 1.7;
-  text-align: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-/* IMAGE PREVIEW */
-.img-preview {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 14px 0;
-  background: var(--bg-tertiary);
-}
-.img-thumb-wrap { position: relative; }
-.img-thumb {
-  width: 70px; height: 70px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  display: block;
-}
-.img-remove {
-  position: absolute; top: -5px; right: -5px;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: var(--text-danger);
-  border: none;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: bold;
-}
+.disclaimer-head span{font-size:13px;font-weight:700;color:#fff}
+.disclaimer-body{padding:4px 0}
+.disclaimer-item{display:flex;gap:10px;padding:11px 16px;border-top:.5px solid var(--border)}
+.disclaimer-item:first-child{border-top:none}
+.disclaimer-num{color:var(--danger);font-weight:700;flex-shrink:0;font-size:14px}
+.disclaimer-text{font-size:13px;color:var(--text2);line-height:1.7}
 
 /* ERROR */
-.error-msg {
-  background: var(--bg-danger);
-  color: var(--text-danger);
-  padding: 10px 14px;
-  font-size: 13px;
-  border-radius: 10px;
-  border: 1px solid var(--text-danger);
-}
+.error-msg{background:var(--danger-bg);color:var(--danger);padding:10px 14px;font-size:13px;border-radius:10px;border:.5px solid rgba(255,59,48,.2)}
 
 /* MODAL */
-.modal-bg {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--bg1);border-radius:20px 20px 0 0;
+  padding:20px 20px max(32px,env(safe-area-inset-bottom,32px));
+  width:100%;max-width:430px;display:flex;flex-direction:column;gap:12px;
+  animation:slideup .25s ease-out;
 }
-.modal {
-  background: var(--bg-primary);
-  border-radius: var(--radius);
-  padding: 20px;
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+@keyframes slideup{from{transform:translateY(60px)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 4px}
+.modal h3{font-size:17px;font-weight:700}
+.modal input{
+  width:100%;padding:13px 15px;border:1px solid var(--border2);border-radius:var(--rs);
+  font-size:15px;background:var(--bg2);color:var(--text);font-family:inherit;outline:none;
 }
-.modal h3 { font-size: 16px; font-weight: 600; }
-.modal input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  font-size: 14px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-family: inherit;
-  outline: none;
-}
-.modal-btns { display: flex; gap: 8px; }
-.modal-btns button {
-  flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  cursor: pointer;
-  border: 1px solid var(--border-strong);
-}
-.modal-btns .confirm { background: var(--text-info); color: #fff; border-color: transparent; }
-.modal-btns .cancel { background: none; color: var(--text-secondary); }
+.modal input:focus{border-color:var(--info)}
+.modal-btns{display:flex;gap:10px;margin-top:4px}
+.modal-btns button{flex:1;padding:14px;border-radius:var(--rs);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;border:none}
+.btn-cancel{background:var(--bg2);color:var(--text2)}
+.btn-confirm{background:var(--info);color:#fff;box-shadow:0 2px 8px rgba(0,122,255,.3)}
 </style>
 </head>
 <body>
 
-<!-- SCREEN 1: SETTINGS -->
-<div class="screen active" id="screen-settings">
-  <div class="screen-header">
-    <div class="screen-title">내 정보</div>
-    <div class="screen-sub">보유 종목 및 투자 성향 설정</div>
+<!-- APP HEADER -->
+<header class="app-header">
+  <div class="app-logo">📈</div>
+  <div class="app-name-wrap">
+    <div class="app-name-main">Stock <span style="-webkit-text-fill-color:inherit;background:none;color:#5856D6">AI</span> Assistant</div>
+    <div class="app-name-sub">한국주식 AI 어시스턴트 · Beta</div>
   </div>
-  <div class="settings-scroll">
+  <div class="live-pill"><div class="live-dot"></div><div class="live-text">LIVE</div></div>
+</header>
 
-    <div class="section-card">
-      <div class="section-label">투자 성향</div>
-      <div class="field-row">
-        <span class="field-label">투자 경력</span>
-        <select class="field-select" id="career">
-          <option>입문 (1년 미만)</option>
-          <option>초급 (1~2년)</option>
-          <option>중급 (3년 이상)</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <span class="field-label">투자 성향</span>
-        <select class="field-select" id="style">
-          <option>안정 추구형</option>
-          <option>중립형</option>
-          <option>공격 투자형</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <span class="field-label">관심 섹터</span>
-        <input class="field-input-text" id="sector" value="반도체, 2차전지" placeholder="예: 반도체, 바이오">
-      </div>
-    </div>
+<!-- ══ SCREEN 1: 내 정보 ══ -->
+<div class="screen active" id="screen-info">
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="switchPanel('stocks',this)">📋 보유종목</button>
+    <button class="inner-tab" onclick="switchPanel('config',this)">⚙️ 설정</button>
+  </div>
 
-    <div class="section-card">
-      <div class="section-label">보유 종목</div>
-      <div id="stock-list"></div>
-      <button class="add-btn" onclick="openAddModal()">＋ 종목 추가</button>
-    </div>
-
-    <div class="section-card">
-      <div class="section-label">알림 설정</div>
-      <div class="field-row">
-        <span class="field-label">급등/급락 기준</span>
-        <select class="field-select" id="alert-threshold">
-          <option>±3%</option>
-          <option selected>±5%</option>
-          <option>±10%</option>
-        </select>
+  <!-- 보유종목 패널 -->
+  <div class="panel active" id="panel-stocks">
+    <div class="panel-scroll">
+      <div class="card">
+        <div class="img-upload-zone" onclick="document.getElementById('stock-img-in').click()">
+          <div class="ico">📷</div>
+          <p>증권사 앱 보유종목 화면 캡처를<br>붙여넣기 또는 업로드하세요</p>
+          <span>AI가 종목명·수량·평단가를 자동 인식합니다</span>
+        </div>
+        <input type="file" id="stock-img-in" accept="image/*" style="display:none" onchange="parseStockImg(event)">
+        <div id="stock-list"></div>
+        <button class="add-row-btn" onclick="openAddModal()">＋ 수동으로 종목 추가</button>
       </div>
-      <div class="field-row">
-        <span class="field-label">아침 브리핑 시각</span>
-        <select class="field-select" id="brief-time">
-          <option>오전 7:00</option>
-          <option selected>오전 8:00</option>
-          <option>오전 8:30</option>
-        </select>
+
+      <!-- 경고문구 -->
+      <div class="disclaimer-card">
+        <div class="disclaimer-head"><span>⚠️ 투자 위험 고지 및 이용 약관</span></div>
+        <div class="disclaimer-body">
+          <div class="disclaimer-item"><span class="disclaimer-num">①</span><span class="disclaimer-text">본 앱이 제공하는 모든 정보는 <strong>AI가 생성한 참고 자료</strong>이며, 투자 권유 또는 투자자문이 아닙니다.</span></div>
+          <div class="disclaimer-item"><span class="disclaimer-num">②</span><span class="disclaimer-text">모든 투자 판단과 그 결과에 대한 <strong>책임은 전적으로 사용자 본인</strong>에게 있습니다.</span></div>
+          <div class="disclaimer-item"><span class="disclaimer-num">③</span><span class="disclaimer-text">본 앱은 「자본시장법」상 투자자문업 등록을 하지 않았으며, 투자 권유 행위를 하지 않습니다.</span></div>
+          <div class="disclaimer-item"><span class="disclaimer-num">④</span><span class="disclaimer-text">AI 분석은 과거 데이터 기반이며 미래 수익을 보장하지 않습니다. 원금 손실이 발생할 수 있습니다.</span></div>
+          <div class="disclaimer-item"><span class="disclaimer-num">⑤</span><span class="disclaimer-text">본 앱을 이용함으로써 위 내용에 동의한 것으로 간주합니다.</span></div>
+        </div>
       </div>
     </div>
 
-    <div class="disclaimer">
-      본 앱은 AI가 생성한 투자 참고 정보를 제공합니다.<br>
-      모든 투자 판단과 그 결과에 대한 책임은 전적으로 사용자 본인에게 있으며,<br>
-      본 앱의 정보는 「자본시장법」상 투자권유에 해당하지 않습니다.
+    <!-- 내정보 채팅 입력창 -->
+    <div class="input-bar">
+      <div class="img-preview-row" id="prev-info"></div>
+      <div class="input-row">
+        <button class="icon-btn" onclick="triggerFile('file-info')">📎</button>
+        <textarea id="inp-info" placeholder="보유종목·투자 성향 등에 대해 질문하세요..." rows="1"
+          onkeydown="handleKey(event,'info')" oninput="autoResize(this)"
+          onpaste="handlePaste(event,'info')"></textarea>
+        <button class="send-btn" id="send-info" onclick="sendMsg('info')">↑</button>
+      </div>
+      <input type="file" id="file-info" accept="image/*" style="display:none" onchange="handleFile(event,'info')">
+    </div>
+  </div>
+
+  <!-- 설정 패널 -->
+  <div class="panel" id="panel-config">
+    <div class="panel-scroll">
+      <div class="card">
+        <div class="card-label">투자 프로필</div>
+        <div class="row"><span class="row-label">투자 경력</span>
+          <select id="career"><option>입문 (1년 미만)</option><option>초급 (1~2년)</option><option>중급 (3년 이상)</option></select>
+        </div>
+        <div class="row"><span class="row-label">투자 성향</span>
+          <select id="style"><option>안정 추구형</option><option>중립형</option><option>공격 투자형</option></select>
+        </div>
+        <div class="row"><span class="row-label">관심 섹터</span>
+          <input type="text" id="sector" value="반도체, 2차전지">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">알림</div>
+        <div class="row"><span class="row-label">급등/급락 기준</span>
+          <select id="alert-pct"><option>±3%</option><option selected>±5%</option><option>±10%</option></select>
+        </div>
+        <div class="row"><span class="row-label">아침 브리핑</span>
+          <select><option>오전 7:00</option><option selected>오전 8:00</option><option>오전 8:30</option></select>
+        </div>
+      </div>
     </div>
 
+    <!-- 설정 채팅 입력창 -->
+    <div class="input-bar">
+      <div class="input-row">
+        <textarea id="inp-config" placeholder="설정 관련 질문을 입력하세요..." rows="1"
+          onkeydown="handleKey(event,'config')" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-config" onclick="sendMsg('config')">↑</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- SCREEN 2: BRIEFING -->
+<!-- ══ SCREEN 2: 브리핑 ══ -->
 <div class="screen" id="screen-briefing">
-  <div class="screen-header">
-    <div class="screen-title">시장 브리핑</div>
-    <div class="screen-sub">내 보유 종목 기준 AI 해설</div>
-  </div>
   <div class="tab-strip" id="time-tabs">
-    <button class="tab-chip active" onclick="setTimeTab(this,'개장 전')">개장 전</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">프리마켓</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오전장')">오전장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오후장')">오후장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">애프터마켓</button>
+    <button class="tab-chip active" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">🌙 프리마켓</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'오전장')">☀️ 오전장</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'오후장')">🌤 오후장</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">🌆 애프터마켓</button>
   </div>
-  <div class="token-bar" id="tok-briefing">
-    <b>입력</b> <span id="tok-b-in">0</span>tok &nbsp;
-    <b>출력</b> <span id="tok-b-out">0</span>tok &nbsp;
-    <b>호출</b> <span id="tok-b-calls">0</span>회
-  </div>
-  <div class="chat-area" id="chat-briefing"></div>
-  <div class="input-bar">
-    <textarea id="inp-briefing" placeholder="브리핑 내용에 대해 질문하세요..." rows="1"
-      onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)"></textarea>
-    <button class="send-btn" id="send-briefing" onclick="sendMsg('briefing')">↑</button>
+  <div class="token-bar"><b>입력</b> <span id="tb-in">0</span>tok &nbsp;<b>출력</b> <span id="tb-out">0</span>tok &nbsp;<b>호출</b> <span id="tb-calls">0</span>회</div>
+  <div class="chat-wrap">
+    <div class="chat-area" id="chat-briefing"></div>
+    <div class="input-bar">
+      <div class="img-preview-row" id="prev-briefing"></div>
+      <div class="input-row">
+        <button class="icon-btn" onclick="triggerFile('file-briefing')">📎</button>
+        <textarea id="inp-briefing" placeholder="브리핑 내용에 대해 자유롭게 질문하세요..." rows="1"
+          onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)"
+          onpaste="handlePaste(event,'briefing')"></textarea>
+        <button class="send-btn" id="send-briefing" onclick="sendMsg('briefing')">↑</button>
+      </div>
+      <input type="file" id="file-briefing" accept="image/*" style="display:none" onchange="handleFile(event,'briefing')">
+    </div>
   </div>
 </div>
 
-<!-- SCREEN 3: CHART -->
+<!-- ══ SCREEN 3: 차트분석 ══ -->
 <div class="screen" id="screen-chart">
-  <div class="screen-header">
-    <div class="screen-title">차트 분석</div>
-    <div class="screen-sub">스크린샷 1~2장 첨부 → AI 해석 · 오버레이 비교</div>
+  <div class="section-header">
+    <div class="section-title">차트 분석</div>
+    <div class="section-desc">스크린샷 첨부 → AI 해석 · 오버레이 추종 비교</div>
   </div>
-  <div class="token-bar" id="tok-chart">
-    <b>입력</b> <span id="tok-c-in">0</span>tok &nbsp;
-    <b>출력</b> <span id="tok-c-out">0</span>tok &nbsp;
-    <b>호출</b> <span id="tok-c-calls">0</span>회
-  </div>
-  <div class="img-preview" id="img-preview"></div>
-  <div class="chat-area" id="chat-chart">
-    <div class="msg system">증권사 앱 차트 스크린샷을 📎로 첨부하세요<br>1장 → 기술적 분석 해설 / 2장 → 오버레이 추종 비교</div>
-  </div>
-  <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleImages(event)">
-  <div class="input-bar">
-    <button class="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
-    <textarea id="inp-chart" placeholder="질문하거나 이미지를 첨부하세요..." rows="1"
-      onkeydown="handleKey(event,'chart')" oninput="autoResize(this)"></textarea>
-    <button class="send-btn" id="send-chart" onclick="sendMsg('chart')">↑</button>
+  <div class="token-bar"><b>입력</b> <span id="tc-in">0</span>tok &nbsp;<b>출력</b> <span id="tc-out">0</span>tok &nbsp;<b>호출</b> <span id="tc-calls">0</span>회</div>
+  <div class="chat-wrap">
+    <div class="chat-area" id="chat-chart">
+      <div class="msg system">증권사 앱 차트를 캡처해서 📎로 첨부하거나 붙여넣기(Ctrl+V)하세요<br>1장 → 기술적 분석 &nbsp;·&nbsp; 2장 → 오버레이 추종 비교 분석</div>
+    </div>
+    <div class="input-bar">
+      <div class="img-preview-row" id="prev-chart"></div>
+      <div class="input-row">
+        <button class="icon-btn" onclick="triggerFile('file-chart')">📎</button>
+        <textarea id="inp-chart" placeholder="이미지를 첨부하거나 질문을 입력하세요..." rows="1"
+          onkeydown="handleKey(event,'chart')" oninput="autoResize(this)"
+          onpaste="handlePaste(event,'chart')"></textarea>
+        <button class="send-btn" id="send-chart" onclick="sendMsg('chart')">↑</button>
+      </div>
+      <input type="file" id="file-chart" accept="image/*" multiple style="display:none" onchange="handleFile(event,'chart')">
+    </div>
   </div>
 </div>
 
-<!-- SCREEN 4: DISCOVERY -->
+<!-- ══ SCREEN 4: 종목발굴 ══ -->
 <div class="screen" id="screen-discovery">
-  <div class="screen-header">
-    <div class="screen-title">종목 발굴</div>
-    <div class="screen-sub">저평가 원인 + 촉매 조건 AI 해설</div>
-  </div>
   <div class="tab-strip" id="disc-tabs">
-    <button class="tab-chip active" onclick="setDiscFilter(this,'저평가 대형주')">저평가 대형주</button>
-    <button class="tab-chip" onclick="setDiscFilter(this,'반도체 소부장')">반도체 소부장</button>
-    <button class="tab-chip" onclick="setDiscFilter(this,'테마주')">테마주</button>
-    <button class="tab-chip" onclick="setDiscFilter(this,'배당주')">배당주</button>
-    <button class="tab-chip" onclick="setDiscFilter(this,'턴어라운드')">턴어라운드</button>
+    <button class="tab-chip active" onclick="setDiscType(this,'대장주')">🥇 대장주</button>
+    <button class="tab-chip" onclick="setDiscType(this,'대형주')">🏢 대형주</button>
+    <button class="tab-chip" onclick="setDiscType(this,'테마주')">🔥 테마주</button>
+    <button class="tab-chip" onclick="setDiscType(this,'배당주')">💰 배당주</button>
+    <button class="tab-chip" onclick="setDiscType(this,'턴어라운드')">🔄 턴어라운드</button>
+    <button class="tab-chip" onclick="setDiscType(this,'중소형 가치주')">💎 가치주</button>
   </div>
-  <div class="token-bar">
-    <b>입력</b> <span id="tok-d-in">0</span>tok &nbsp;
-    <b>출력</b> <span id="tok-d-out">0</span>tok &nbsp;
-    <b>호출</b> <span id="tok-d-calls">0</span>회
+
+  <!-- 5단계 진행바 -->
+  <div class="step-bar">
+    <div class="step-nodes">
+      <div class="step-node">
+        <div class="step-circle active" id="sc1">1</div>
+        <span>유형선택</span>
+      </div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-node">
+        <div class="step-circle" id="sc2">2</div>
+        <span>저평가 추출</span>
+      </div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-node">
+        <div class="step-circle" id="sc3">3</div>
+        <span>원인 분석</span>
+      </div>
+      <div class="step-line" id="sl3"></div>
+      <div class="step-node">
+        <div class="step-circle" id="sc4">4</div>
+        <span>해소 조건</span>
+      </div>
+      <div class="step-line" id="sl4"></div>
+      <div class="step-node">
+        <div class="step-circle" id="sc5">5</div>
+        <span>투자 순서</span>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="step-nav-btn" id="btn-prev" onclick="goStep(-1)" disabled>◀ 이전 단계</button>
+      <button class="step-nav-btn primary" id="btn-next" onclick="goStep(1)">다음 단계 ▶</button>
+    </div>
   </div>
-  <div class="chat-area" id="chat-discovery">
-    <div class="msg system">필터를 선택하거나 원하는 조건을 직접 입력하세요</div>
-  </div>
-  <div class="input-bar">
-    <textarea id="inp-discovery" placeholder="예: PBR 0.5 이하 반도체 소부장..." rows="1"
-      onkeydown="handleKey(event,'discovery')" oninput="autoResize(this)"></textarea>
-    <button class="send-btn" id="send-discovery" onclick="sendMsg('discovery')">↑</button>
+
+  <div class="token-bar"><b>입력</b> <span id="td-in">0</span>tok &nbsp;<b>출력</b> <span id="td-out">0</span>tok &nbsp;<b>호출</b> <span id="td-calls">0</span>회</div>
+
+  <div class="chat-wrap">
+    <div class="chat-area" id="chat-discovery">
+      <div class="msg system">유형을 선택하면 1단계부터 시작합니다<br>각 단계를 읽고 이전/다음으로 이동하거나 질문하세요</div>
+    </div>
+    <div class="input-bar">
+      <div class="input-row">
+        <textarea id="inp-discovery" placeholder="이 단계에 대해 궁금한 점을 질문하세요..." rows="1"
+          onkeydown="handleKey(event,'discovery')" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-discovery" onclick="sendMsg('discovery')">↑</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" onclick="switchScreen('settings',this)">
-    <span class="nav-icon">⚙️</span>내 정보
-  </button>
-  <button class="nav-btn" onclick="switchScreen('briefing',this)">
-    <span class="nav-icon">📰</span>브리핑
-  </button>
-  <button class="nav-btn" onclick="switchScreen('chart',this)">
-    <span class="nav-icon">📊</span>차트분석
-  </button>
-  <button class="nav-btn" onclick="switchScreen('discovery',this)">
-    <span class="nav-icon">🔍</span>종목발굴
-  </button>
+  <button class="nav-btn active" onclick="switchScreen('info',this)"><span class="nav-icon">👤</span>내 정보</button>
+  <button class="nav-btn" onclick="switchScreen('briefing',this)"><span class="nav-icon">📰</span>브리핑</button>
+  <button class="nav-btn" onclick="switchScreen('chart',this)"><span class="nav-icon">📊</span>차트분석</button>
+  <button class="nav-btn" onclick="switchScreen('discovery',this)"><span class="nav-icon">🔍</span>종목발굴</button>
 </nav>
 
-<!-- ADD STOCK MODAL -->
-<div class="modal-bg" id="modal" style="display:none">
+<!-- MODAL -->
+<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <h3>종목 추가</h3>
+    <div class="modal-handle"></div>
+    <h3>종목 수동 추가</h3>
     <input id="m-name" placeholder="종목명 (예: 삼성전자)">
     <input id="m-qty" type="number" placeholder="수량 (주)">
     <input id="m-avg" type="number" placeholder="평단가 (원)">
     <div class="modal-btns">
-      <button class="cancel" onclick="closeModal()">취소</button>
-      <button class="confirm" onclick="confirmAdd()">추가</button>
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-confirm" onclick="confirmAdd()">추가</button>
     </div>
   </div>
 </div>
 
 <script>
-const API = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const API="https://api.anthropic.com/v1/messages";
+const MODEL="claude-sonnet-4-20250514";
 
-let stocks = [
-  { name:"삼성전자", qty:100, avg:72000 },
-  { name:"SK하이닉스", qty:30, avg:181000 },
-  { name:"에코프로비엠", qty:20, avg:210000 }
+let stocks=[
+  {name:"삼성전자",qty:100,avg:72000},
+  {name:"SK하이닉스",qty:30,avg:181000},
+  {name:"에코프로비엠",qty:20,avg:210000}
 ];
 
-const histories = { briefing:[], chart:[], discovery:[] };
-const tokens = {
-  briefing:{in:0,out:0,calls:0},
-  chart:{in:0,out:0,calls:0},
-  discovery:{in:0,out:0,calls:0}
-};
+const histories={info:[],config:[],briefing:[],chart:[],discovery:[]};
+const tokens={briefing:{in:0,out:0,calls:0},chart:{in:0,out:0,calls:0},discovery:{in:0,out:0,calls:0}};
+const pendingImgs={info:[],briefing:[],chart:[]};
+let curTimeTab="개장 전";
+let curDiscType="대장주";
+let curStep=0; // 0=시작전, 1~5=단계
+const stepResponses={}; // step -> chat messages snapshot
 
-let currentTimeTab = "개장 전";
-let currentDiscFilter = "저평가 대형주";
-let pendingImages = [];
+// ── Nav ──
+function switchScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='briefing'&&histories.briefing.length===0) setTimeout(()=>autoGreet('briefing'),150);
+}
+function switchPanel(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.inner-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+}
 
-// ── Render stocks ──
-function renderStocks() {
-  document.getElementById('stock-list').innerHTML = stocks.map((s,i) => `
+// ── Stocks ──
+function renderStocks(){
+  document.getElementById('stock-list').innerHTML=stocks.map((s,i)=>`
     <div class="stock-row">
-      <div style="flex:1">
+      <div class="stock-icon">${s.name[0]}</div>
+      <div class="stock-info">
         <div class="stock-name">${s.name}</div>
         <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원</div>
       </div>
       <button class="del-btn" onclick="removeStock(${i})">×</button>
     </div>`).join('');
 }
-
-function removeStock(i) { stocks.splice(i,1); renderStocks(); }
-
-function openAddModal() { document.getElementById('modal').style.display='flex'; document.getElementById('m-name').focus(); }
-function closeModal() { document.getElementById('modal').style.display='none'; }
-function confirmAdd() {
-  const name = document.getElementById('m-name').value.trim();
-  const qty = parseInt(document.getElementById('m-qty').value);
-  const avg = parseInt(document.getElementById('m-avg').value);
-  if (!name || !qty || !avg) { alert('모두 입력해주세요'); return; }
-  stocks.push({name,qty,avg});
-  renderStocks();
-  closeModal();
-  ['m-name','m-qty','m-avg'].forEach(id => document.getElementById(id).value='');
+function removeStock(i){stocks.splice(i,1);renderStocks()}
+function openAddModal(){document.getElementById('modal').style.display='flex';setTimeout(()=>document.getElementById('m-name').focus(),100)}
+function closeModal(){document.getElementById('modal').style.display='none'}
+function confirmAdd(){
+  const name=document.getElementById('m-name').value.trim();
+  const qty=parseInt(document.getElementById('m-qty').value);
+  const avg=parseInt(document.getElementById('m-avg').value);
+  if(!name||!qty||!avg){alert('모두 입력해주세요');return}
+  stocks.push({name,qty,avg});renderStocks();closeModal();
+  ['m-name','m-qty','m-avg'].forEach(id=>document.getElementById(id).value='');
 }
 
-// ── Navigation ──
-function switchScreen(name, btn) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
-  btn.classList.add('active');
-  if (name==='briefing' && histories.briefing.length===0) setTimeout(()=>autoGreet('briefing'),200);
-  if (name==='discovery' && histories.discovery.length===0) setTimeout(()=>autoGreet('discovery'),200);
+// ── Stock image parse ──
+async function parseStockImg(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const data=ev.target.result.split(',')[1];
+    addMsg('info','system','🔍 이미지에서 종목 정보 인식 중...');
+    try{
+      const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:MODEL,max_tokens:600,messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:file.type,data}},
+          {type:'text',text:'이 증권사 앱 화면에서 보유 종목명, 수량, 평균단가를 추출해서 JSON 배열로만 답해줘. 형식: [{"name":"종목명","qty":수량,"avg":평단가숫자}] 다른 설명 없이 JSON만.'}
+        ]}]})});
+      const d=await res.json();
+      const parsed=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+      parsed.forEach(s=>{if(s.name&&s.qty&&s.avg)stocks.push(s)});
+      renderStocks();
+      addMsg('info','ai',`✅ ${parsed.length}개 종목을 인식했습니다: ${parsed.map(s=>s.name).join(', ')}\n종목 목록을 확인하고 수정이 필요하면 말씀해주세요.`);
+    }catch(err){addMsg('info','ai','이미지 인식에 실패했습니다. 수동으로 추가해주세요.')}
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
 }
 
 // ── Tabs ──
-function setTimeTab(btn, label) {
+function setTimeTab(btn,label){
   document.querySelectorAll('#time-tabs .tab-chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentTimeTab = label;
-  histories.briefing = [];
-  document.getElementById('chat-briefing').innerHTML='';
+  btn.classList.add('active');curTimeTab=label;
+  histories.briefing=[];document.getElementById('chat-briefing').innerHTML='';
   autoGreet('briefing');
 }
-function setDiscFilter(btn, label) {
+function setDiscType(btn,label){
   document.querySelectorAll('#disc-tabs .tab-chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentDiscFilter = label;
-  histories.discovery = [];
+  btn.classList.add('active');curDiscType=label;
+  histories.discovery=[];
   document.getElementById('chat-discovery').innerHTML='';
-  autoGreet('discovery');
+  curStep=0;updateStepUI();
+  // 1단계 자동 시작
+  setTimeout(()=>executeStep(1),200);
 }
 
-// ── User context ──
-function getUserCtx() {
-  const career = document.getElementById('career').value;
-  const style  = document.getElementById('style').value;
-  const sector = document.getElementById('sector').value;
-  const slist  = stocks.map(s=>`${s.name} ${s.qty}주 평단 ${s.avg.toLocaleString()}원`).join(' / ');
-  return `[사용자 정보]\n투자경력: ${career} | 성향: ${style} | 관심섹터: ${sector}\n보유종목: ${slist}`;
+// ── Discovery Step Logic ──
+const STEP_LABELS=["","유형 선택","저평가주 추출","저평가 원인 분석","해소 조건 분석","투자 우선순위"];
+const STEP_PROMPTS={
+  1:(type)=>`[1단계: 유형 선택]
+지금 "${type}" 유형으로 종목 발굴을 시작합니다.
+
+이 유형의 특성과 투자 포인트를 입문자가 이해하기 쉽게 설명해주세요:
+- "${type}"란 어떤 종목을 말하는지
+- 이 유형에 투자할 때 어떤 점을 봐야 하는지
+- 어떤 투자 성향에 잘 맞는지
+
+설명 후 "다음 단계 ▶를 누르면 전 섹터에서 저평가 후보를 추출하겠습니다"라고 안내해주세요.`,
+
+  2:(type)=>`[2단계: 전 섹터 저평가주 추출]
+"${type}" 유형 기준으로 한국 증시 전 섹터(반도체·2차전지·조선·방산·바이오·금융·소비재·원자력·IT서비스·화학 등)를 스캔해서 상대적으로 저평가된 종목 후보를 추출해주세요.
+
+형식:
+- 섹터별로 1~2개씩 (총 8~10개)
+- 종목명, 저평가 수준(상/중/하), 한줄 근거
+- 사용자 보유종목(${stocks.map(s=>s.name).join(', ')})과 관련 있으면 표시
+
+마지막에 "다음 단계 ▶를 누르면 각 종목의 저평가 원인을 분석하겠습니다"라고 안내해주세요.`,
+
+  3:(type)=>`[3단계: 저평가 원인 분석]
+앞서 추출한 후보 종목들의 저평가 원인을 각각 분석해주세요.
+
+원인 유형:
+① 실적 부진 (일시적 vs 구조적)
+② 업황 침체 (사이클 하락 vs 구조 변화)
+③ 수급 악화 (외국인·기관 이탈 등)
+④ 일시적 이슈 (악재 과반응 등)
+⑤ 시장 미반영 (저평가 인식 부재)
+
+각 종목별로 원인 유형과 구체적 내용을 쉬운 말로 설명해주세요.
+마지막에 "다음 단계 ▶를 누르면 각 원인의 해소 조건을 분석하겠습니다"라고 안내해주세요.`,
+
+  4:(type)=>`[4단계: 해소 조건 분석]
+앞서 분석한 저평가 원인들이 '언제' 가 아니라 '어떤 조건이 충족되면 해소되는지'를 분석해주세요.
+
+입문자가 이해하기 쉽게:
+- 각 종목별 핵심 촉매 조건 1~2개
+- 그 조건을 어떻게 확인할 수 있는지 (예: "분기 실적 발표", "정부 발표", "수출 데이터" 등)
+- 조건 충족 가능성 (높음/보통/낮음)
+
+마지막에 "다음 단계 ▶를 누르면 최종 투자 우선순위를 정리하겠습니다"라고 안내해주세요.`,
+
+  5:(type)=>`[5단계: 투자 우선순위]
+지금까지 4단계 분석을 종합해서 "${type}" 유형 종목들의 투자 관심 순위를 정리해주세요.
+
+평가 기준:
+① 저평가 해소 가능성
+② 촉매 조건 근접도 (조건이 곧 충족될 것 같은지)
+③ 리스크 수준
+④ 사용자 투자 성향(${document.getElementById('style')?.value||'중립형'})과의 적합도
+
+최종 정리:
+- 1순위~3순위 추천 관심 종목과 이유
+- 각 종목별 주의사항
+- 입문자를 위한 전체 요약 조언
+
+반드시 마지막에: "이 분석은 AI 참고 의견이며, 최종 투자 판단은 반드시 본인이 직접 하셔야 합니다."라고 명시해주세요.`
+};
+
+async function executeStep(step){
+  if(step<1||step>5) return;
+  curStep=step;
+  updateStepUI();
+  const label=STEP_LABELS[step];
+  addMsg('discovery','step-badge',`📍 ${step}단계: ${label}`);
+  const prompt=STEP_PROMPTS[step](curDiscType);
+  await callClaude('discovery',prompt,true);
 }
-function getSysPrompt(screen) {
-  const ctx = getUserCtx();
-  const base = `당신은 한국 주식 입문자를 위한 AI 어시스턴트입니다. 증권사 앱에서 이미 볼 수 있는 시세나 수치보다, '왜 이런 일이 생겼는지', '내 종목에 어떤 의미인지'를 쉬운 말로 해설하는 데 집중하세요. 투자 최종 판단은 항상 사용자에게 맡기고, 단정적 매수·매도 권고는 하지 마세요.\n\n${ctx}`;
-  if (screen==='briefing') return base+`\n\n현재 시간대: ${currentTimeTab}\n이 시간대의 시장 상황을 사용자의 보유 종목 관점에서 원인·영향 중심으로 해설하세요.`;
-  if (screen==='chart')    return base+`\n\n사용자가 증권사 앱 차트 스크린샷을 첨부합니다. 이미지 1장이면 기술적 패턴·지지/저항 의미를 해설하고, 2장이면 두 종목의 추종 여부와 상관관계를 오버레이 관점에서 비교 분석하세요.`;
-  if (screen==='discovery') return base+`\n\n발굴 필터: ${currentDiscFilter}\n저평가 원인과 해소 촉매 조건을 중심으로, '지금 왜 주목할 만한가'를 해설해 주세요. 종목 리스트 나열보다 논리적 근거 위주로 설명하세요.`;
+
+function goStep(dir){
+  const next=curStep+dir;
+  if(next<1||next>5) return;
+  executeStep(next);
+}
+
+function updateStepUI(){
+  for(let i=1;i<=5;i++){
+    const c=document.getElementById('sc'+i);
+    const l=document.getElementById('sl'+i);
+    if(i<curStep){c.className='step-circle done';if(l)l.className='step-line done'}
+    else if(i===curStep){c.className='step-circle active';if(l)l.className='step-line'}
+    else{c.className='step-circle';if(l)l.className='step-line'}
+  }
+  document.getElementById('btn-prev').disabled=curStep<=1;
+  document.getElementById('btn-next').disabled=curStep>=5;
+  document.getElementById('btn-next').textContent=curStep>=5?'완료 ✓':'다음 단계 ▶';
+}
+
+// ── Context ──
+function getUserCtx(){
+  const career=document.getElementById('career')?.value||'입문';
+  const style=document.getElementById('style')?.value||'중립형';
+  const sector=document.getElementById('sector')?.value||'반도체';
+  const slist=stocks.length?stocks.map(s=>`${s.name} ${s.qty}주 평단 ${s.avg.toLocaleString()}원`).join(' / '):'미설정';
+  return `[사용자] 경력:${career} | 성향:${style} | 관심섹터:${sector}\n보유종목: ${slist}`;
+}
+function getSysPrompt(screen){
+  const ctx=getUserCtx();
+  const base=`당신은 한국 주식 입문자를 위한 AI 어시스턴트입니다. 증권사 앱에서 볼 수 있는 수치 대신, '왜 이런 일이 생겼는지', '내 종목에 어떤 의미인지'를 쉽고 친절하게 해설하는 데 집중하세요. 단정적 매수·매도 권고는 하지 마세요.\n${ctx}`;
+  if(screen==='briefing') return base+`\n\n현재 시간대: ${curTimeTab}. 이 시간대 시장을 사용자 보유종목 관점에서 원인·영향 중심으로 해설하세요.`;
+  if(screen==='chart') return base+`\n\n사용자가 증권사 앱 차트 스크린샷을 첨부합니다. 1장이면 기술적 패턴·지지/저항 의미 해설, 2장이면 두 종목의 추종 여부와 상관관계를 오버레이 관점에서 비교 분석하세요.`;
+  if(screen==='info'||screen==='config') return base+`\n\n사용자의 투자 정보 설정이나 포트폴리오에 관한 질문에 친절하게 답해주세요.`;
+  if(screen==='discovery') return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다. 입문자가 이해할 수 있도록 쉬운 언어로 단계별 종목 분석을 제공하세요.\n${ctx}`;
   return base;
 }
 
 // ── Chat UI ──
-function addMsg(screen, role, text) {
-  const area = document.getElementById('chat-'+screen);
-  const div = document.createElement('div');
-  div.className = 'msg '+role;
-  div.innerHTML = text.replace(/\n/g,'<br>');
+function addMsg(screen,role,text){
+  const area=document.getElementById('chat-'+screen);
+  if(!area)return;
+  const div=document.createElement('div');
+  div.className='msg '+role;
+  div.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
   area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+  area.scrollTop=area.scrollHeight;
 }
-function showTyping(screen) {
-  const area = document.getElementById('chat-'+screen);
-  const div = document.createElement('div');
-  div.id = 'typing-'+screen;
-  div.className = 'typing';
-  div.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
+function showTyping(screen){
+  const area=document.getElementById('chat-'+screen);if(!area)return;
+  const div=document.createElement('div');
+  div.id='typing-'+screen;div.className='typing';
+  div.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
 }
-function removeTyping(screen) {
-  const el = document.getElementById('typing-'+screen);
-  if (el) el.remove();
-}
-function updateTokens(screen, inTok, outTok) {
-  tokens[screen].in   += inTok;
-  tokens[screen].out  += outTok;
-  tokens[screen].calls++;
-  const s = screen[0]; // b, c, d
-  const map = {briefing:'b', chart:'c', discovery:'d'};
-  const k = map[screen];
-  document.getElementById(`tok-${k}-in`).textContent    = tokens[screen].in.toLocaleString();
-  document.getElementById(`tok-${k}-out`).textContent   = tokens[screen].out.toLocaleString();
-  document.getElementById(`tok-${k}-calls`).textContent = tokens[screen].calls;
+function removeTyping(screen){const el=document.getElementById('typing-'+screen);if(el)el.remove()}
+function updateTok(screen,inT,outT){
+  tokens[screen].in+=inT;tokens[screen].out+=outT;tokens[screen].calls++;
+  const k={briefing:'b',chart:'c',discovery:'d'}[screen];
+  if(!k)return;
+  document.getElementById(`t${k}-in`).textContent=tokens[screen].in.toLocaleString();
+  document.getElementById(`t${k}-out`).textContent=tokens[screen].out.toLocaleString();
+  document.getElementById(`t${k}-calls`).textContent=tokens[screen].calls;
 }
 
-// ── API Call ──
-async function callClaude(screen, userText, isAuto=false) {
-  const btn = document.getElementById('send-'+screen);
-  if (btn) btn.disabled = true;
-
-  if (!isAuto) addMsg(screen, 'user', userText);
+// ── API ──
+async function callClaude(screen,userText,isAuto=false){
+  const btn=document.getElementById('send-'+screen);
+  if(btn)btn.disabled=true;
+  if(!isAuto)addMsg(screen,'user',userText);
 
   let content;
-  if (screen==='chart' && pendingImages.length>0) {
-    content = [
-      ...pendingImages.map(img=>({type:'image', source:{type:'base64', media_type:img.type, data:img.data}})),
-      {type:'text', text: userText || (pendingImages.length>=2 ? '이 두 차트의 추종 여부와 상관관계를 분석해줘' : '이 차트를 분석해줘')}
+  const imgs=pendingImgs[screen]||[];
+  if(imgs.length>0){
+    content=[
+      ...imgs.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})),
+      {type:'text',text:userText||(imgs.length>=2?'이 두 차트의 추종 여부와 상관관계를 분석해줘':'이 차트를 분석해줘')}
     ];
-    pendingImages=[];
-    document.getElementById('img-preview').innerHTML='';
-  } else {
-    content = userText;
+    pendingImgs[screen]=[];
+    const prev=document.getElementById('prev-'+screen);
+    if(prev)prev.innerHTML='';
+  }else{
+    content=userText;
   }
 
-  histories[screen].push({role:'user', content});
+  histories[screen].push({role:'user',content});
   showTyping(screen);
 
-  try {
-    const res = await fetch(API, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1000,
-        system: getSysPrompt(screen),
-        messages: histories[screen]
-      })
+  try{
+    const res=await fetch(API,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen]})
     });
-    const data = await res.json();
+    const data=await res.json();
     removeTyping(screen);
-    if (data.error) throw new Error(data.error.message);
-    const reply = data.content[0].text;
-    histories[screen].push({role:'assistant', content:reply});
-    addMsg(screen, 'ai', reply);
-    updateTokens(screen, data.usage?.input_tokens||0, data.usage?.output_tokens||0);
-  } catch(e) {
+    if(data.error)throw new Error(data.error.message);
+    const reply=data.content[0].text;
+    histories[screen].push({role:'assistant',content:reply});
+    addMsg(screen,'ai',reply);
+    if(tokens[screen])updateTok(screen,data.usage?.input_tokens||0,data.usage?.output_tokens||0);
+  }catch(e){
     removeTyping(screen);
-    const errDiv = document.createElement('div');
-    errDiv.className='error-msg';
-    errDiv.textContent='오류: '+e.message;
-    document.getElementById('chat-'+screen).appendChild(errDiv);
+    const d=document.createElement('div');
+    d.className='error-msg';d.textContent='오류: '+e.message;
+    const area=document.getElementById('chat-'+screen);
+    if(area)area.appendChild(d);
   }
-
-  if (btn) btn.disabled = false;
+  if(btn)btn.disabled=false;
 }
 
-function autoGreet(screen) {
-  const greet = {
-    briefing: `${currentTimeTab} 시황을 내 보유 종목 관점에서 해설해줘`,
-    discovery: `${currentDiscFilter} 중에서 지금 주목할 만한 이유가 있는 종목을 해설해줘`
-  };
-  callClaude(screen, greet[screen], true);
+function autoGreet(screen){
+  const g={briefing:`${curTimeTab} 시황을 내 보유종목 관점에서 원인과 영향 중심으로 해설해줘`};
+  callClaude(screen,g[screen],true);
 }
 
-// ── Input helpers ──
-function handleKey(e, screen) {
-  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(screen); }
-}
-function autoResize(el) {
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,120)+'px';
-}
-function sendMsg(screen) {
-  const inp = document.getElementById('inp-'+screen);
-  const text = inp.value.trim();
-  if (!text && pendingImages.length===0) return;
-  inp.value=''; inp.style.height='auto';
-  callClaude(screen, text);
+// ── Input ──
+function handleKey(e,screen){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(screen)}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+function triggerFile(id){document.getElementById(id).click()}
+function sendMsg(screen){
+  const inp=document.getElementById('inp-'+screen);
+  if(!inp)return;
+  const text=inp.value.trim();
+  const imgs=pendingImgs[screen]||[];
+  if(!text&&imgs.length===0)return;
+  inp.value='';inp.style.height='auto';
+  callClaude(screen,text);
 }
 
-// ── Image handling ──
-function handleImages(e) {
-  const files = Array.from(e.target.files).slice(0,2);
-  pendingImages=[];
-  document.getElementById('img-preview').innerHTML='';
-  files.forEach((file,i)=>{
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const data = ev.target.result.split(',')[1];
-      pendingImages.push({type:file.type, data});
-      const wrap = document.createElement('div');
-      wrap.className='img-thumb-wrap';
-      wrap.innerHTML=`<img class="img-thumb" src="${ev.target.result}"><button class="img-remove" onclick="removeImg(${i})">×</button>`;
-      document.getElementById('img-preview').appendChild(wrap);
+// ── Images ──
+function handleFile(e,screen){
+  addImages(Array.from(e.target.files).slice(0,2),screen);
+  e.target.value='';
+}
+function handlePaste(e,screen){
+  const items=Array.from(e.clipboardData?.items||[]);
+  const imgItems=items.filter(i=>i.type.startsWith('image/'));
+  if(!imgItems.length)return;
+  e.preventDefault();
+  addImages(imgItems.map(i=>i.getAsFile()).filter(Boolean),screen);
+}
+function addImages(files,screen){
+  if(!pendingImgs[screen])pendingImgs[screen]=[];
+  files.forEach(file=>{
+    if((pendingImgs[screen]||[]).length>=2)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const data=ev.target.result.split(',')[1];
+      const idx=(pendingImgs[screen]=pendingImgs[screen]||[]).push({type:file.type,data})-1;
+      const prev=document.getElementById('prev-'+screen);if(!prev)return;
+      const wrap=document.createElement('div');wrap.className='img-thumb-wrap';
+      wrap.innerHTML=`<img class="img-thumb" src="${ev.target.result}"><button class="img-remove" onclick="removeImg('${screen}',${idx})">×</button>`;
+      prev.appendChild(wrap);
     };
     reader.readAsDataURL(file);
   });
-  e.target.value='';
 }
-function removeImg(i) {
-  pendingImages.splice(i,1);
-  document.getElementById('img-preview').innerHTML='';
-  pendingImages.forEach((_,j)=>{
-    const wrap=document.createElement('div');
-    wrap.className='img-thumb-wrap';
-    wrap.innerHTML=`<img class="img-thumb" src="data:${pendingImages[j].type};base64,${pendingImages[j].data}"><button class="img-remove" onclick="removeImg(${j})">×</button>`;
-    document.getElementById('img-preview').appendChild(wrap);
+function removeImg(screen,i){
+  if(pendingImgs[screen])pendingImgs[screen].splice(i,1);
+  const prev=document.getElementById('prev-'+screen);if(!prev)return;
+  prev.innerHTML='';
+  (pendingImgs[screen]||[]).forEach((img,j)=>{
+    const wrap=document.createElement('div');wrap.className='img-thumb-wrap';
+    wrap.innerHTML=`<img class="img-thumb" src="data:${img.type};base64,${img.data}"><button class="img-remove" onclick="removeImg('${screen}',${j})">×</button>`;
+    prev.appendChild(wrap);
   });
 }
 
 // ── Init ──
 renderStocks();
+updateStepUI();
 </script>
 </body>
 </html>
