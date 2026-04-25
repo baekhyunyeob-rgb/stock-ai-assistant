@@ -762,7 +762,7 @@ async function callClaude(screen, userText, isAuto=false) {
   try {
     const res=await fetch(API,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen]})
+      body:JSON.stringify({model:MODEL,max_tokens:2000,system:getSysPrompt(screen),messages:histories[screen]})
     });
     const data=await res.json();
     removeTyping(screen);
