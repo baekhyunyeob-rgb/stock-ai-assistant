@@ -379,7 +379,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
       </div>
       <div class="step-nav-row">
         <button class="step-nav-btn" id="btn-prev" onclick="goStep(-1)" disabled>◀ 이전</button>
-        <button class="step-nav-btn primary" id="btn-next" onclick="goStep(1)" disabled>다음 ▶</button>
+        <button class="step-nav-btn primary" id="btn-next" onclick="onNextBtn()" disabled>다음 ▶</button>
       </div>
     </div>
     <div class="input-bar">
@@ -730,6 +730,16 @@ async function executeStep(step) {
   addMsg('discovery','step-badge',`📍 ${step}단계 · ${STEP_LABELS[step]}`);
   await callClaude('discovery', getStepPrompt(step), true);
 }
+function onNextBtn() {
+  if (curStep === 0) {
+    // 아직 시작 전 — 1단계 실행
+    executeStep(1);
+  } else {
+    // 진행 중 — 다음 단계
+    goStep(1);
+  }
+}
+
 function goStep(dir) {
   const next = curStep+dir;
   if (next>=1&&next<=5) executeStep(next);
