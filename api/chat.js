@@ -1,49 +1,67 @@
-export const config = { runtime: 'edge' };
+// Node.js runtime — 외부 API 호출 가능
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: { message: 'API 키가 설정되지 않았습니다. Vercel 환경변수를 확인하세요.' } }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return res.status(500).json({ error: { message: 'GEMINI_API_KEY가 설정되지 않았습니다.' } });
   }
 
   try {
-    const body = await req.json();
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(body),
+    const { messages, system, max_tokens } = req.body;
+    const systemText = system || '';
+    const geminiContents = [];
+
+    messages.forEach((msg, idx) => {
+      let parts = [];
+      if (typeof msg.content === 'string') {
+        const text = idx === 0 && systemText ? `${systemText}\n\n${msg.content}` : msg.content;
+        parts = [{ text }];
+      } else if (Array.isArray(msg.content)) {
+        msg.content.forEach(c => {
+          if (c.type === 'text') {
+            const text = idx === 0 && systemText ? `${systemText}\n\n${c.text}` : c.text;
+            parts.push({ text });
+          } else if (c.type === 'image') {
+            parts.push({ inline_data: { mime_type: c.source.media_type, data: c.source.data } });
+          }
+        });
+      }
+      geminiContents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
     });
 
-    const data = await res.json();
-    return new Response(JSON.stringify(data), {
-      status: res.status,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    const geminiBody = {
+      contents: geminiContents,
+      generationConfig: { maxOutputTokens: max_tokens || 1000, temperature: 0.7 }
+    };
+
+    const model = 'gemini-2.0-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiBody)
     });
+
+    const data = await response.json();
+    if (data.error) return res.status(500).json({ error: { message: data.error.message } });
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const inputTokens = data.usageMetadata?.promptTokenCount || 0;
+    const outputTokens = data.usageMetadata?.candidatesTokenCount || 0;
+
+    return res.status(200).json({
+      content: [{ type: 'text', text }],
+      usage: { input_tokens: inputTokens, output_tokens: outputTokens }
+    });
+
   } catch (e) {
-    return new Response(JSON.stringify({ error: { message: e.message } }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    return res.status(500).json({ error: { message: e.message } });
   }
 }
