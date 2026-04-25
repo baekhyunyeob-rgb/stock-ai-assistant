@@ -347,7 +347,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 <!-- ═══ SCREEN 4: 종목발굴 ═══ -->
 <div class="screen" id="screen-discovery">
   <div class="tab-strip" id="disc-tabs">
-    <button class="tab-chip active" onclick="toggleDiscType(this,'전체')">전체</button>
+    <button class="tab-chip" onclick="toggleDiscType(this,'전체')">전체</button>
     <button class="tab-chip" onclick="toggleDiscType(this,'대장주')">🥇 대장주</button>
     <button class="tab-chip" onclick="toggleDiscType(this,'대형주')">🏢 대형주</button>
     <button class="tab-chip" onclick="toggleDiscType(this,'테마주')">🔥 테마주</button>
@@ -436,7 +436,7 @@ const tokens = {
 };
 const pendingImgs = {info:[],briefing:[],chart:[]};
 let curTimeTab = '개장 전';
-let selectedDiscTypes = new Set(['전체']);
+let selectedDiscTypes = new Set();
 let curStep = 0;
 let editingIdx = -1;
 let cachedNews = [];
@@ -524,31 +524,40 @@ function setTimeTab(btn, label) {
 
 // ── Discovery tabs (multi-select) ──
 function toggleDiscType(btn, label) {
+  const allBtns = document.querySelectorAll('#disc-tabs .tab-chip');
+  const allTypes = ['대장주','대형주','테마주','배당주','턴어라운드','가치주'];
+
   if (label === '전체') {
-    selectedDiscTypes.clear();
-    selectedDiscTypes.add('전체');
-    document.querySelectorAll('#disc-tabs .tab-chip').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
+    // 전체 탭: 이미 다 선택된 상태면 전체 해제, 아니면 전체 선택
+    const allSelected = allTypes.every(t => selectedDiscTypes.has(t));
+    if (allSelected) {
+      selectedDiscTypes.clear();
+      allBtns.forEach(b=>b.classList.remove('active'));
+    } else {
+      selectedDiscTypes.clear();
+      allTypes.forEach(t=>selectedDiscTypes.add(t));
+      allBtns.forEach(b=>b.classList.add('active'));
+    }
   } else {
-    selectedDiscTypes.delete('전체');
-    document.querySelector('#disc-tabs .tab-chip').classList.remove('active'); // 전체 버튼
+    // 개별 탭 토글
     if (btn.classList.contains('active')) {
       btn.classList.remove('active');
       selectedDiscTypes.delete(label);
-      if (selectedDiscTypes.size===0) {
-        selectedDiscTypes.add('전체');
-        document.querySelector('#disc-tabs .tab-chip').classList.add('active');
-      }
     } else {
       btn.classList.add('active');
       selectedDiscTypes.add(label);
     }
+    // 전체 탭 상태 업데이트
+    const allSelected = allTypes.every(t => selectedDiscTypes.has(t));
+    const firstBtn = document.querySelector('#disc-tabs .tab-chip');
+    if (allSelected) firstBtn.classList.add('active');
+    else firstBtn.classList.remove('active');
   }
-  // 선택 바뀌면 1단계 시작
+
+  // 자동 실행 안 함 — 다음 버튼 활성화만
   histories.discovery=[]; document.getElementById('chat-discovery').innerHTML='';
   curStep=0; updateStepUI();
-  document.getElementById('btn-next').disabled=false;
-  setTimeout(()=>executeStep(1),200);
+  document.getElementById('btn-next').disabled = selectedDiscTypes.size===0;
 }
 
 // ── News ──
