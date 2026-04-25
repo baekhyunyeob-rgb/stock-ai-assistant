@@ -127,7 +127,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* CHAT */
 .chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
-.chat-area{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
+.chat-area{flex:1;overflow-y:auto;padding:12px 8px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
 .msg{max-width:92%;font-size:14px;line-height:1.7;word-break:keep-all}
 .msg.user{max-width:80%}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
@@ -598,25 +598,18 @@ async function fetchMacro() {
   try {
     const r = await fetch('/api/macro');
     const data = await r.json();
-    const labels = {'^GSPC':'S&P','^\IXIC':'나스닥','^DJI':'다우','KRW=X':'달러/원','CL=F':'WTI','^\TNX':'금리10Y'};
-    const nameMap = {'%5EGSPC':'S&P','%5EIXIC':'나스닥','%5EDJI':'다우','KRW=X':'달러/원','CL=F':'WTI','%5ETNX':'금리10Y'};
-    const labelMap = {'^GSPC':'S&P','^IXIC':'나스닥','^DJI':'다우','KRW=X':'달러/원','CL=F':'WTI','^TNX':'금리10Y'};
-    const unitMap = {'KRW=X':'원','CL=F':'$','^TNX':'%'};
     const items = data.filter(d=>!d.error).map(d=>{
-      const label = labelMap[d.sym]||d.sym;
-      const unit = unitMap[d.sym]||'';
       const sign = d.chg>0?'+':'';
-      const dir = d.chg>0?'up':d.chg<0?'dn':'fl';
-      const price = d.sym==='KRW=X'?d.price.toFixed(1):d.sym==='^TNX'?d.price.toFixed(2):Math.round(d.price).toLocaleString();
-      return `<div class="ticker-item"><span class="t-label">${label}</span><span class="t-val">${price}${unit}</span><span class="t-chg ${dir}">${sign}${d.pct.toFixed(2)}%</span></div>`;
+      const dir  = d.chg>0?'up':d.chg<0?'dn':'fl';
+      const price = d.unit==='원' ? Math.round(d.price).toLocaleString()
+                  : d.unit==='%'  ? d.price.toFixed(2)
+                  : d.unit==='$'  ? d.price.toFixed(1)
+                  : Math.round(d.price).toLocaleString();
+      return `<div class="ticker-item"><span class="t-label">${d.label}</span><span class="t-val">${price}${d.unit}</span><span class="t-chg ${dir}">${sign}${d.pct.toFixed(2)}%</span></div>`;
     });
     if (items.length>0) {
-      const html = items.join('')+items.join('');
-      document.getElementById('ticker-track').innerHTML = html;
-      macroDataStr = data.filter(d=>!d.error).map(d=>{
-        const label = labelMap[d.sym]||d.sym;
-        return `${label}:${d.price.toFixed(2)}(${d.chg>=0?'+':''}${d.pct.toFixed(2)}%)`;
-      }).join(', ');
+      document.getElementById('ticker-track').innerHTML = items.join('')+items.join('');
+      macroDataStr = data.filter(d=>!d.error).map(d=>`${d.label}:${d.price.toFixed(2)}(${d.chg>=0?'+':''}${d.pct.toFixed(2)}%)`).join(', ');
     }
   } catch(e) {}
 }
