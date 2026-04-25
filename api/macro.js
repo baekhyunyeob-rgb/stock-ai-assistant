@@ -2,12 +2,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const symbols = [
-    { sym: '%5EGSPC', label: 'S&P500', unit: '' },
-    { sym: '%5EIXIC', label: '나스닥', unit: '' },
-    { sym: '%5EDJI',  label: '다우',   unit: '' },
-    { sym: 'KRW=X',  label: '달러/원', unit: '원' },
-    { sym: 'CL=F',   label: 'WTI',    unit: '$' },
-    { sym: '%5ETNX', label: '금리10Y', unit: '%' },
+    { sym: '%5EKS11', label: '코스피',   unit: '' },
+    { sym: '%5EKQ11', label: '코스닥',   unit: '' },
+    { sym: '%5EGSPC', label: 'S&P500',  unit: '' },
+    { sym: '%5EIXIC', label: '나스닥',   unit: '' },
+    { sym: '%5EDJI',  label: '다우',     unit: '' },
+    { sym: '%5ESOX',  label: '반도체SOX',unit: '' },
+    { sym: 'KRW=X',   label: '달러/원',  unit: '원' },
+    { sym: 'BZ=F',    label: '유가(브렌트)', unit: '$' },
+    { sym: '%5ETNX',  label: '금리10Y',  unit: '%' },
   ];
 
   const results = [];
@@ -40,7 +43,7 @@ export default async function handler(req, res) {
         error: false
       });
     } catch (e) {
-      results.push({ sym: s.sym, label: s.label, error: true });
+      results.push({ sym: s.sym, label: s.label, unit: s.unit, error: true });
     }
   }
 
