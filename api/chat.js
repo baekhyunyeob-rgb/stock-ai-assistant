@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       generationConfig: { maxOutputTokens: max_tokens || 1000, temperature: 0.7 }
     };
 
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-2.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
