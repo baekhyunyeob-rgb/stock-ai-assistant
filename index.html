@@ -232,7 +232,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
       </div>
     </div>
       <div id="prev-info" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px;display:none"></div>
-      <input type="file" id="file-info" accept="image/*" multiple style="display:none" onchange="handleFileInfo(event)">
+      <input type="file" id="file-info" accept="image/*" multiple style="display:none">
   </div>
 
   <!-- 설정 패널 -->
@@ -362,7 +362,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
           onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)" onpaste="handlePaste(event,'briefing')"></textarea>
         <button class="send-btn" id="send-briefing" onclick="sendMsg('briefing')">↑</button>
       </div>
-      <input type="file" id="file-briefing" accept="image/*" multiple style="display:none" onchange="handleFile(event,'briefing')">
+      <input type="file" id="file-briefing" accept="image/*" multiple style="display:none" >
     </div>
   </div>
 </div>
@@ -386,7 +386,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
           onkeydown="handleKey(event,'chart')" oninput="autoResize(this)" onpaste="handlePaste(event,'chart')"></textarea>
         <button class="send-btn" id="send-chart" onclick="sendMsg('chart')">↑</button>
       </div>
-      <input type="file" id="file-chart" accept="image/*" multiple style="display:none" onchange="handleFile(event,'chart')">
+      <input type="file" id="file-chart" accept="image/*" multiple style="display:none" >
     </div>
   </div>
 </div>
@@ -1209,6 +1209,31 @@ fetchMacro();
 fetchNews();
 loadAlertSettings();
 fetchStockAlert();
+
+// 파일 input 이벤트 — 모바일 호환성을 위해 addEventListener 사용
+(function() {
+  const fi = document.getElementById('file-info');
+  if(fi) {
+    fi.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFileInfo(e);
+    });
+    fi.addEventListener('click', function() { this.value = ''; });
+  }
+  const fb = document.getElementById('file-briefing');
+  if(fb) {
+    fb.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFile(e,'briefing');
+    });
+    fb.addEventListener('click', function() { this.value = ''; });
+  }
+  const fc = document.getElementById('file-chart');
+  if(fc) {
+    fc.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFile(e,'chart');
+    });
+    fc.addEventListener('click', function() { this.value = ''; });
+  }
+})();
 </script>
 </body>
 </html>
