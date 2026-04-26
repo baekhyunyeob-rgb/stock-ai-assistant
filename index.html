@@ -85,6 +85,22 @@ body {
   background: var(--bg);
 }
 
+/* ── 게시판 스타일 ── */
+.board-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg1);border-bottom:.5px solid var(--border)}
+.board-title{font-size:13px;font-weight:700;color:var(--text)}
+.board-filters{display:flex;gap:4px}
+.board-filter{padding:4px 10px;border-radius:12px;border:1px solid var(--border2);background:none;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;font-family:inherit}
+.board-filter.active{background:var(--info);color:#fff;border-color:transparent}
+.board-list{flex-shrink:0;max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;border-bottom:.5px solid var(--border)}
+.board-item{display:flex;align-items:center;padding:9px 14px;border-top:.5px solid var(--border);gap:8px;cursor:pointer;transition:background .15s}
+.board-item:active{background:var(--bg2)}
+.board-badge{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px}
+.board-badge.dart{background:rgba(255,149,0,.15);color:#FF9500}
+.board-badge.news{background:rgba(52,199,89,.15);color:#34C759}
+.board-corp{flex-shrink:0;font-size:12px;font-weight:600;color:var(--text);min-width:60px}
+.board-title-text{flex:1;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-date{flex-shrink:0;font-size:11px;color:var(--text3)}
+
 /* ── COMPONENT CSS (기존 유지) ── */
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -431,19 +447,16 @@ body {
       </div>
     </div>
   </div>
-  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border)">
-    <div class="news-strip" onclick="onNewsTap('dart')" style="border-bottom:.5px solid var(--border);height:30px">
-      <div class="news-badge">📋 공시 <span style="font-weight:400;opacity:.7">7일</span></div>
-      <div class="news-scroll-wrap">
-        <div class="news-scroll-inner" id="dart-scroll">공시 불러오는 중...</div>
-      </div>
+  <div class="board-header">
+    <span class="board-title">📋 공시 · 뉴스 <span style="font-size:11px;font-weight:400;color:var(--text3)">7일</span></span>
+    <div class="board-filters">
+      <button class="board-filter active" onclick="filterBoard('all',this)">전체</button>
+      <button class="board-filter" onclick="filterBoard('dart',this)">공시</button>
+      <button class="board-filter" onclick="filterBoard('news',this)">뉴스</button>
     </div>
-    <div class="news-strip" onclick="onNewsTap('news')" style="height:30px">
-      <div class="news-badge">📰 뉴스</div>
-      <div class="news-scroll-wrap">
-        <div class="news-scroll-inner" id="news-scroll">뉴스 불러오는 중...</div>
-      </div>
-    </div>
+  </div>
+  <div class="board-list" id="board-list">
+    <div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>
   </div>
   <div class="tab-strip" id="time-tabs">
     <button class="tab-chip" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
@@ -790,26 +803,42 @@ async function fetchNews() {
   }
 }
 
+let boardFilter = 'all';
+
+function renderBoard() {
+  const board = document.getElementById('board-list');
+  if(!board) return;
+  const items = boardFilter === 'all' ? cachedNews
+    : cachedNews.filter(n=>n.type===boardFilter);
+  if(items.length===0) {
+    board.innerHTML = '<div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">항목이 없습니다</div>';
+    return;
+  }
+  board.innerHTML = items.map((n,i)=>{
+    const badge = n.type==='dart' ? '<span class="board-badge dart">공시</span>' : '<span class="board-badge news">뉴스</span>';
+    const date = n.date ? (n.date.toString().length===8
+      ? n.date.toString().slice(4,6)+'.'+n.date.toString().slice(6,8)
+      : new Date(n.date).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}).replace('. ','.')
+    ) : '';
+    const title = n.title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
+    return `<div class="board-item" onclick="onBoardTap(${i})">
+      ${badge}
+      <span class="board-corp">${n.corp_name}</span>
+      <span class="board-title-text">${title}</span>
+      <span class="board-date">${date}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterBoard(type, btn) {
+  boardFilter = type;
+  document.querySelectorAll('.board-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBoard();
+}
+
 function startNewsTicker() {
-  if (cachedNews.length===0) return;
-  
-  const dartItems = cachedNews.filter(n=>n.type==='dart');
-  const newsItems = cachedNews.filter(n=>n.type==='news');
-
-  const dartEl = document.getElementById('dart-scroll');
-  const newsEl = document.getElementById('news-scroll');
-
-  if(dartItems.length>0) {
-    dartEl.textContent = dartItems.map(n=>`${n.corp_name} · ${n.title}`).join('    　    ');
-  } else {
-    dartEl.textContent = '최근 공시 없음';
-  }
-
-  if(newsItems.length>0) {
-    newsEl.textContent = newsItems.map(n=>`${n.corp_name} · ${n.title}`).join('    　    ');
-  } else {
-    newsEl.textContent = '최근 뉴스 없음';
-  }
+  renderBoard();
 }
 
 function onNewsTap(filterType) {
