@@ -290,7 +290,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
     </div>
   </div>
   <div class="tab-strip" id="time-tabs">
-    <button class="tab-chip active" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
     <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">🌙 프리마켓</button>
     <button class="tab-chip" onclick="setTimeTab(this,'오전장')">☀️ 오전장</button>
     <button class="tab-chip" onclick="setTimeTab(this,'오후장')">🌤 오후장</button>
@@ -448,7 +448,7 @@ function switchScreen(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   btn.classList.add('active');
-  if (name==='briefing' && histories.briefing.length===0) setTimeout(()=>autoGreet('briefing'),150);
+  // 브리핑은 시간대 탭 선택 시 시작
 }
 function switchPanel(name, btn) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -516,7 +516,8 @@ function confirmStock() {
 function setTimeTab(btn, label) {
   document.querySelectorAll('#time-tabs .tab-chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); curTimeTab=label;
-  histories.briefing=[]; document.getElementById('chat-briefing').innerHTML='';
+  histories.briefing=[]; 
+  document.getElementById('chat-briefing').innerHTML='<div class="msg system">'+label+' 시황 브리핑을 시작합니다...</div>';
   autoGreet('briefing');
 }
 
