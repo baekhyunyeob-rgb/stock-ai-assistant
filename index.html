@@ -44,7 +44,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* SCREENS */
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;position:relative}
-.screen.active{display:flex}
+.screen.active{display:flex;flex-direction:column}
 
 /* NAV */
 .bottom-nav{flex-shrink:0;display:flex;background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:.5px solid var(--border);padding-bottom:max(env(safe-area-inset-bottom,0px),6px);}
@@ -86,7 +86,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* PANELS */
 .panel{display:none;flex:1;flex-direction:column;min-height:0}
-.panel.active{display:flex}
+.panel.active{display:flex;flex-direction:column}
 .panel-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 
 /* CARDS */
