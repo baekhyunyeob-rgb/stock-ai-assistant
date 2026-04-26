@@ -57,7 +57,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .macro-bar{flex-shrink:0;height:32px;overflow:hidden;background:var(--bg1);border-bottom:.5px solid var(--border);display:flex;align-items:center;}
 .ticker-wrap{overflow:hidden;width:100%;height:100%}
 .ticker-track{display:flex;height:100%;align-items:center;animation:ticker 35s linear infinite;width:max-content;}
-.ticker-track:hover{animation-play-state:paused}
+
 @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .ticker-item{display:inline-flex;align-items:center;gap:5px;padding:0 14px;font-size:12px;border-right:.5px solid var(--border);white-space:nowrap;flex-shrink:0;height:100%;}
 .t-label{color:var(--text3);font-size:11px;font-weight:500}
@@ -69,8 +69,8 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .news-strip{flex-shrink:0;background:var(--info-bg);display:flex;align-items:center;gap:8px;padding:0 10px;cursor:pointer;overflow:hidden;}
 .news-badge{font-size:10px;font-weight:700;color:var(--info);background:var(--bg1);padding:2px 7px;border-radius:10px;flex-shrink:0;}
 .news-scroll-wrap{flex:1;overflow:hidden;height:100%;display:flex;align-items:center;}
-.news-scroll-inner{white-space:nowrap;font-size:12px;color:var(--text2);animation:newstick 25s linear infinite;}
-.news-scroll-inner:hover{animation-play-state:paused}
+.news-scroll-inner{white-space:nowrap;font-size:12px;color:var(--text2);animation:newstick 90s linear infinite;}
+
 @keyframes newstick{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 
 /* TAB STRIP */
@@ -336,7 +336,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   </div>
   <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border)">
     <div class="news-strip" onclick="onNewsTap('dart')" style="border-bottom:.5px solid var(--border);height:30px">
-      <div class="news-badge">📋 공시</div>
+      <div class="news-badge">📋 공시 <span style="font-weight:400;opacity:.7">7일</span></div>
       <div class="news-scroll-wrap">
         <div class="news-scroll-inner" id="dart-scroll">공시 불러오는 중...</div>
       </div>

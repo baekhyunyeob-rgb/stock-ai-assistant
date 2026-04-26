@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   // 오늘부터 30일 전
   const today = new Date();
-  const bgn = new Date(today - 30 * 24 * 60 * 60 * 1000);
+  const bgn = new Date(today - 7 * 24 * 60 * 60 * 1000);
   const fmt = d => d.toISOString().slice(0,10).replace(/-/g,'');
   const bgnDe = fmt(bgn);
 
@@ -58,16 +58,17 @@ export default async function handler(req, res) {
       } catch(e) {}
     }
 
-    // 2. 구글 뉴스 RSS
+    // 2. 구글 뉴스 RSS - 종목명 포함 기사만
     try {
-      const query = encodeURIComponent(`${stock.name} 주식`);
+      const query = encodeURIComponent(`"${stock.name}" 주가`);
       const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=ko&gl=KR&ceid=KR:ko`;
       const r = await fetch(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
       const txt = await r.text();
 
-      // XML 파싱 - title 태그 추출
       const itemMatches = txt.match(/<item>([\s\S]*?)<\/item>/g) || [];
-      itemMatches.slice(0, 2).forEach(item => {
+      let added = 0;
+      for (const item of itemMatches) {
+        if (added >= 2) break;
         const titleMatch = item.match(/<title>([\s\S]*?)<\/title>/);
         const dateMatch  = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
         const linkMatch  = item.match(/<link>([\s\S]*?)<\/link>/);
@@ -75,17 +76,13 @@ export default async function handler(req, res) {
           const title = titleMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
           const date  = dateMatch?.[1]?.trim() || '';
           const link  = linkMatch?.[1]?.trim() || '';
-          if (title && !title.includes('Google 뉴스')) {
-            results.push({
-              type: 'news',
-              corp_name: stock.name,
-              title,
-              date,
-              url: link
-            });
+          // 종목명이 제목에 포함된 것만
+          if (title && title.includes(stock.name) && !title.includes('Google 뉴스')) {
+            results.push({ type:'news', corp_name:stock.name, title, date, url:link });
+            added++;
           }
         }
-      });
+      }
     } catch(e) {}
   }
 
