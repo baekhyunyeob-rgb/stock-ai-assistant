@@ -99,7 +99,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* STOCK LIST */
 .stock-row{display:flex;align-items:center;padding:10px 12px;border-top:.5px solid var(--border);gap:8px}
-.stock-icon{width:36px;height:36px;border-radius:9px;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--info);flex-shrink:0;}
+.stock-icon{width:28px;height:28px;border-radius:7px;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--info);flex-shrink:0;}
 .stock-info{flex:1;min-width:0}
 .stock-name{font-size:14px;font-weight:600}
 .stock-detail{font-size:12px;color:var(--text3);margin-top:1px}
@@ -200,14 +200,14 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 </header>
 
 <!-- ═══ SCREEN 1: 내 정보 ═══ -->
-<div class="screen active" id="screen-info">
+<div class="screen active" id="screen-info" style="overflow:hidden">
   <div class="inner-tabs">
     <button class="inner-tab active" onclick="switchPanel('stocks',this)">📋 보유종목</button>
     <button class="inner-tab" onclick="switchPanel('config',this)">⚙️ 설정</button>
   </div>
 
   <!-- 보유종목 패널 -->
-  <div class="panel active" id="panel-stocks" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div class="panel active" id="panel-stocks" style="overflow-y:scroll;-webkit-overflow-scrolling:touch;flex:1;">
     <div class="panel-scroll" style="overflow-y:auto">
       <div class="card">
         <div class="card-label">보유종목</div>
@@ -528,8 +528,8 @@ function renderStocks() {
     let changeStr = '';
     if(alert && !alert.error) {
       const dir = alert.change > 0 ? '▲' : '▼';
-      const cls = alert.change > 0 ? 'color:#FF3B30' : 'color:#007AFF';
-      changeStr = `<span style="${cls};font-size:12px;font-weight:600">${dir} ${Math.abs(alert.change)}%</span>`;
+      const cls = alert.change > 0 ? 'color:#FF3B30' : 'color:#34C759';
+      changeStr = `<span style="${cls};font-size:11px;font-weight:600">${dir}${Math.abs(alert.change)}%</span>`;
 
       // 손익 기준 체크
       const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
@@ -537,9 +537,9 @@ function renderStocks() {
         const profitTarget = s.profitTarget || parseFloat(localStorage.getItem('alert-bulk-profit')) || null;
         const lossLimit    = s.lossLimit    || parseFloat(localStorage.getItem('alert-bulk-loss'))   || null;
         if(profitTarget && alert.profitRate >= profitTarget) {
-          alertTag = `<span style="background:#34C759;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">🟢 익절 +${alert.profitRate.toFixed(1)}%</span>`;
+          alertTag = `<span style="background:#34C759;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">익절</span>`;
         } else if(lossLimit && alert.profitRate <= -lossLimit) {
-          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">🔴 손절 ${alert.profitRate.toFixed(1)}%</span>`;
+          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">손절</span>`;
         }
       }
     }
