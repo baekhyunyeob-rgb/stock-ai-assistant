@@ -85,9 +85,9 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .inner-tab.active{color:var(--info);border-bottom-color:var(--info)}
 
 /* PANELS */
-.panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
-.panel.active{display:flex}
-.panel-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.panel{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden}
+.panel.active{display:flex;overflow:hidden}
+.panel-scroll{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;gap:10px;background:var(--bg);height:0}
 
 /* CARDS */
 .card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
@@ -128,7 +128,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* CHAT */
 .chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
-.chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
+.chat-area{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);height:0;}
 .msg{max-width:92%;font-size:14px;line-height:1.7;word-break:keep-all}
 .msg.user{max-width:80%}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
@@ -200,22 +200,22 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 </header>
 
 <!-- ═══ SCREEN 1: 내 정보 ═══ -->
-<div class="screen active" id="screen-info" style="overflow:hidden">
+<div class="screen active" id="screen-info">
   <div class="inner-tabs">
     <button class="inner-tab active" onclick="switchPanel('stocks',this)">📋 보유종목</button>
     <button class="inner-tab" onclick="switchPanel('config',this)">⚙️ 설정</button>
   </div>
 
   <!-- 보유종목 패널 -->
-  <div class="panel active" id="panel-stocks" style="overflow-y:scroll;-webkit-overflow-scrolling:touch;flex:1;">
-    <div class="panel-scroll" style="overflow-y:auto">
+  <div class="panel active" id="panel-stocks">
+    <div class="panel-scroll">
       <div class="card">
         <div class="card-label">보유종목</div>
         <div id="stock-list"></div>
         <div style="display:flex;border-top:.5px solid var(--border)">
-        <button class="add-row-btn" style="border-top:none;border-right:.5px solid var(--border)" onclick="openAddModal()">＋ 종목 추가</button>
-        <button class="add-row-btn" style="border-top:none" onclick="triggerFile('file-info')">📷 이미지로 등록</button>
-      </div>
+          <button class="add-row-btn" style="border-top:none;border-right:.5px solid var(--border)" onclick="openAddModal()">＋ 종목 추가</button>
+          <button class="add-row-btn" style="border-top:none" onclick="triggerFile('file-info')">📷 이미지로 등록</button>
+        </div>
       </div>
       <div class="accordion">
         <div class="accordion-header" onclick="toggleAccordion()">
@@ -230,13 +230,13 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
           <div class="disc-item"><span class="disc-num">⑤</span><span class="disc-text">본 앱 이용 시 위 내용에 동의한 것으로 간주합니다.</span></div>
         </div>
       </div>
-    </div>
-      <div id="prev-info" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px;display:none"></div>
+      <div id="prev-info" style="display:none;flex-wrap:wrap;gap:8px"></div>
       <input type="file" id="file-info" accept="image/*" multiple style="display:none">
+    </div>
   </div>
 
   <!-- 설정 패널 -->
-  <div class="panel" id="panel-config" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div class="panel" id="panel-config">
     <div class="panel-scroll">
 
       <!-- AI 어시스턴트 선택 -->
