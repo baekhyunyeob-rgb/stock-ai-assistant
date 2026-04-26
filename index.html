@@ -779,10 +779,9 @@ function toggleDiscType(btn, label) {
 // ── News ──
 async function fetchNews() {
   try {
-    const snames = stocks.map(s=>s.name);
     const r = await fetch('/api/news', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({stocks: snames})
+      body: JSON.stringify({stocks})
     });
     cachedNews = await r.json();
     if (cachedNews.length>0) startNewsTicker();
