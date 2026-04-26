@@ -242,20 +242,77 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   <!-- 설정 패널 -->
   <div class="panel" id="panel-config">
     <div class="panel-scroll">
+
+      <!-- AI 어시스턴트 선택 -->
       <div class="card">
-        <div class="card-label">경고 알림 기준</div>
+        <div class="card-label">AI 어시스턴트</div>
         <div class="row">
-          <span class="row-label">급등/급락 기준</span>
-          <select id="alert-pct" onchange="fetchStockAlert()">
-            <option>±3%</option>
-            <option selected>±5%</option>
-            <option>±10%</option>
-          </select>
+          <span class="row-label">🤖 Gemini</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--success);background:var(--success-bg);padding:2px 8px;border-radius:10px;font-weight:600">무료</span>
+            <input type="radio" name="ai-model" id="ai-gemini" value="gemini" checked onchange="onModelChange()">
+          </div>
         </div>
-        <div class="row" style="font-size:13px;color:var(--text3);padding:10px 16px">
-          앱 실행 시 보유종목 전일 등락률을 체크해서 기준 초과 시 종목 옆에 경고 표시합니다.
+        <div class="row">
+          <span class="row-label">⚡ Claude</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--warn);background:var(--warn-bg);padding:2px 8px;border-radius:10px;font-weight:600">유료</span>
+            <input type="radio" name="ai-model" id="ai-claude" value="claude" onchange="onModelChange()">
+          </div>
+        </div>
+        <div class="row" style="font-size:12px;color:var(--text3)">
+          Claude 선택 시 더 정확한 분석이 가능하지만 API 비용이 발생합니다.
         </div>
       </div>
+
+      <!-- 손익 알림 설정 -->
+      <div class="card">
+        <div class="card-label">손익 알림</div>
+        <div class="row">
+          <span class="row-label">손익 알림 사용</span>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="alert-enabled" onchange="onAlertToggle()" style="width:18px;height:18px;cursor:pointer">
+            <span id="alert-enabled-label" style="font-size:14px;color:var(--text3)">사용 안 함</span>
+          </label>
+        </div>
+
+        <!-- 알림 ON일 때만 표시 -->
+        <div id="alert-options" style="display:none">
+          <div class="row">
+            <span class="row-label">일괄 설정</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="alert-bulk" onchange="onBulkToggle()" style="width:18px;height:18px;cursor:pointer">
+              <span id="alert-bulk-label" style="font-size:14px;color:var(--text3)">종목별 개별 설정</span>
+            </label>
+          </div>
+
+          <!-- 일괄 설정 ON일 때 -->
+          <div id="bulk-inputs" style="display:none">
+            <div class="row">
+              <span class="row-label">🟢 익절 기준</span>
+              <div style="display:flex;align-items:center;gap:4px">
+                <input type="number" id="bulk-profit" value="15" min="1" max="100"
+                  style="width:60px;border:1px solid var(--border2);border-radius:8px;padding:6px;font-size:14px;text-align:right;background:var(--bg2);color:var(--text)">
+                <span style="font-size:14px;color:var(--text3)">%</span>
+              </div>
+            </div>
+            <div class="row">
+              <span class="row-label">🔴 손절 기준</span>
+              <div style="display:flex;align-items:center;gap:4px">
+                <input type="number" id="bulk-loss" value="10" min="1" max="100"
+                  style="width:60px;border:1px solid var(--border2);border-radius:8px;padding:6px;font-size:14px;text-align:right;background:var(--bg2);color:var(--text)">
+                <span style="font-size:14px;color:var(--text3)">%</span>
+              </div>
+            </div>
+            <div class="row">
+              <button onclick="applyBulkAlert()" style="width:100%;padding:12px;border-radius:10px;background:var(--info);color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+                전 종목에 적용
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="input-bar">
       <div class="input-row">
@@ -314,10 +371,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 <!-- ═══ SCREEN 3: 차트분석 ═══ -->
 <div class="screen" id="screen-chart">
-  <div style="flex-shrink:0;padding:10px 16px 8px;background:var(--bg1);border-bottom:.5px solid var(--border)">
-    <div style="font-size:15px;font-weight:700">차트 분석</div>
-    <div style="font-size:12px;color:var(--text3);margin-top:2px">증권사 앱 차트 캡처를 첨부하거나 붙여넣으세요</div>
-  </div>
+
   <div class="token-bar">
     <b>입력</b><span id="tc-in">0</span>tok
     <b>출력</b><span id="tc-out">0</span>tok
@@ -782,7 +836,9 @@ async function callClaude(screen, userText, isAuto=false) {
   histories[screen].push({role:'user',content});
   showTyping(screen);
   try {
-    const res=await fetch(API,{
+    const model = getSelectedModel();
+    const apiEndpoint = model === 'claude' ? '/api/chat-claude' : API;
+    const res=await fetch(apiEndpoint,{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen]})
     });
@@ -960,10 +1016,69 @@ function resolveDuplicates(mode) {
   addMsg('info','ai',`✅ ${duplicates.map(s=>s.name).join(', ')} ${modeText} 완료\n최종 종목 목록을 확인해주세요.`);
 }
 
+// ── AI 모델 선택 ──
+function onModelChange() {
+  const model = document.querySelector('input[name="ai-model"]:checked')?.value || 'gemini';
+  localStorage.setItem('ai-model', model);
+}
+function getSelectedModel() {
+  return localStorage.getItem('ai-model') || 'gemini';
+}
+
+// ── 손익 알림 설정 ──
+function onAlertToggle() {
+  const enabled = document.getElementById('alert-enabled').checked;
+  document.getElementById('alert-enabled-label').textContent = enabled ? '사용 중' : '사용 안 함';
+  document.getElementById('alert-options').style.display = enabled ? 'block' : 'none';
+  localStorage.setItem('alert-enabled', enabled);
+  if(enabled) fetchStockAlert();
+  else { Object.keys(alertData).forEach(k=>delete alertData[k]); renderStocks(); }
+}
+
+function onBulkToggle() {
+  const bulk = document.getElementById('alert-bulk').checked;
+  document.getElementById('alert-bulk-label').textContent = bulk ? '일괄 설정' : '종목별 개별 설정';
+  document.getElementById('bulk-inputs').style.display = bulk ? 'block' : 'none';
+  localStorage.setItem('alert-bulk', bulk);
+}
+
+function applyBulkAlert() {
+  const profit = parseFloat(document.getElementById('bulk-profit').value) || 15;
+  const loss   = parseFloat(document.getElementById('bulk-loss').value)   || 10;
+  stocks.forEach(s => {
+    s.profitTarget = profit;
+    s.lossLimit    = loss;
+  });
+  localStorage.setItem('alert-bulk-profit', profit);
+  localStorage.setItem('alert-bulk-loss', loss);
+  renderStocks();
+  fetchStockAlert();
+  alert(`✅ 전 종목에 익절 +${profit}%, 손절 -${loss}% 적용됐습니다.`);
+}
+
+function loadAlertSettings() {
+  const enabled = localStorage.getItem('alert-enabled') === 'true';
+  const bulk    = localStorage.getItem('alert-bulk') === 'true';
+  const profit  = localStorage.getItem('alert-bulk-profit') || '15';
+  const loss    = localStorage.getItem('alert-bulk-loss')   || '10';
+  const model   = localStorage.getItem('ai-model') || 'gemini';
+
+  document.getElementById('alert-enabled').checked = enabled;
+  document.getElementById('alert-enabled-label').textContent = enabled ? '사용 중' : '사용 안 함';
+  document.getElementById('alert-options').style.display = enabled ? 'block' : 'none';
+  document.getElementById('alert-bulk').checked = bulk;
+  document.getElementById('alert-bulk-label').textContent = bulk ? '일괄 설정' : '종목별 개별 설정';
+  document.getElementById('bulk-inputs').style.display = bulk ? 'block' : 'none';
+  document.getElementById('bulk-profit').value = profit;
+  document.getElementById('bulk-loss').value   = loss;
+  document.getElementById(model==='claude'?'ai-claude':'ai-gemini').checked = true;
+}
+
 // ── 종목 경고 체크 ──
 async function fetchStockAlert() {
-  if(stocks.length === 0) return;
-  const threshold = document.getElementById('alert-pct')?.value?.replace('±','').replace('%','') || '5';
+  const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
+  if(!alertEnabled || stocks.length === 0) return;
+  const threshold = '5';
   try {
     const r = await fetch('/api/stock-alert', {
       method: 'POST',
@@ -983,6 +1098,7 @@ renderStocks();
 updateStepUI();
 fetchMacro();
 fetchNews();
+loadAlertSettings();
 fetchStockAlert();
 </script>
 </body>
