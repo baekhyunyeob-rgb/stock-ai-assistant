@@ -531,6 +531,7 @@ body {
     <div class="modal-handle"></div>
     <h3 id="modal-title">종목 추가</h3>
     <div class="modal-field"><label>종목명</label><input id="m-name" placeholder="예: 삼성전자"></div>
+    <div class="modal-field"><label>종목코드 <span style="font-size:11px;color:var(--text3)">(선택 · 우선주·ETF는 필수)</span></label><input id="m-code" placeholder="예: 005930" maxlength="6"></div>
     <div class="modal-field"><label>수량 (주)</label><input id="m-qty" type="number" placeholder="예: 100"></div>
     <div class="modal-field"><label>평단가 (원)</label><input id="m-avg" type="number" placeholder="예: 72000"></div>
     <div style="display:flex;gap:10px">
@@ -644,7 +645,7 @@ function openAddModal() {
   editingIdx = -1;
   document.getElementById('modal-title').textContent = '종목 추가';
   document.getElementById('modal-confirm').textContent = '추가';
-  ['m-name','m-qty','m-avg','m-profit','m-loss'].forEach(id=>document.getElementById(id).value='');
+  ['m-name','m-code','m-qty','m-avg','m-profit','m-loss'].forEach(id=>document.getElementById(id).value='');
   // 손익절 활성화 여부
   const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
   const alertBulk    = localStorage.getItem('alert-bulk') === 'true';
@@ -666,6 +667,7 @@ function openEditModal(i) {
   document.getElementById('modal-title').textContent = '종목 수정';
   document.getElementById('modal-confirm').textContent = '수정';
   document.getElementById('m-name').value = s.name;
+  document.getElementById('m-code').value = s.stockCode || '';
   document.getElementById('m-qty').value = s.qty;
   document.getElementById('m-avg').value = s.avg;
   document.getElementById('m-profit').value = s.profitTarget || '';

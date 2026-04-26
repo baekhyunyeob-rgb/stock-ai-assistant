@@ -33,8 +33,8 @@ export default async function handler(req, res) {
 
     for (const stock of stocks) {
       try {
-        // 종목코드 조회
-        const stockCode = stockMap[stock.name];
+        // 종목코드 조회 - 직접 입력한 코드 우선 사용
+        const stockCode = stock.stockCode || stockMap[stock.name];
         if (!stockCode) {
           results.push({ name: stock.name, error: '종목코드 없음' });
           continue;
