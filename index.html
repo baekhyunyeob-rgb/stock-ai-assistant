@@ -235,7 +235,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
           onkeydown="handleKey(event,'info')" oninput="autoResize(this)" onpaste="handlePaste(event,'info')"></textarea>
         <button class="send-btn" id="send-info" onclick="sendMsg('info')">↑</button>
       </div>
-      <input type="file" id="file-info" accept="image/*" style="display:none" onchange="handleFile(event,'info')">
+      <input type="file" id="file-info" accept="image/*" multiple style="display:none" onchange="handleFile(event,'info')">
     </div>
   </div>
 
@@ -312,7 +312,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
           onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)" onpaste="handlePaste(event,'briefing')"></textarea>
         <button class="send-btn" id="send-briefing" onclick="sendMsg('briefing')">↑</button>
       </div>
-      <input type="file" id="file-briefing" accept="image/*" style="display:none" onchange="handleFile(event,'briefing')">
+      <input type="file" id="file-briefing" accept="image/*" multiple style="display:none" onchange="handleFile(event,'briefing')">
     </div>
   </div>
 </div>
@@ -422,11 +422,7 @@ const MODEL = 'claude-sonnet-4-20250514';
 const COST_IN = 3 / 1_000_000;   // $3 per 1M input tokens
 const COST_OUT = 15 / 1_000_000; // $15 per 1M output tokens
 
-let stocks = [
-  {name:'삼성전자',qty:100,avg:72000},
-  {name:'SK하이닉스',qty:30,avg:181000},
-  {name:'에코프로비엠',qty:20,avg:210000}
-];
+let stocks = [];
 
 const histories = {info:[],config:[],briefing:[],chart:[],discovery:[]};
 const tokens = {
@@ -795,8 +791,9 @@ async function callClaude(screen, userText, isAuto=false) {
   let content;
   const imgs=pendingImgs[screen]||[];
   if(imgs.length>0){
+    const defaultText = screen==='info' ? '이 이미지에서 보유종목을 등록해줘' : '이 차트를 분석해줘';
     content=[...imgs.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})),
-      {type:'text',text:userText||'이 차트를 분석해줘'}];
+      {type:'text',text:userText||defaultText}];
     pendingImgs[screen]=[]; const prev=document.getElementById('prev-'+screen); if(prev)prev.innerHTML='';
   } else { content=userText; }
   histories[screen].push({role:'user',content});
