@@ -466,6 +466,16 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
     <div class="modal-field"><label>종목명</label><input id="m-name" placeholder="예: 삼성전자"></div>
     <div class="modal-field"><label>수량 (주)</label><input id="m-qty" type="number" placeholder="예: 100"></div>
     <div class="modal-field"><label>평단가 (원)</label><input id="m-avg" type="number" placeholder="예: 72000"></div>
+    <div style="display:flex;gap:10px">
+      <div class="modal-field" style="flex:1">
+        <label>🟢 익절 기준 (%)</label>
+        <input id="m-profit" type="number" placeholder="예: 15" min="1" max="200">
+      </div>
+      <div class="modal-field" style="flex:1">
+        <label>🔴 손절 기준 (%)</label>
+        <input id="m-loss" type="number" placeholder="예: 10" min="1" max="200">
+      </div>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">취소</button>
       <button class="btn-confirm" id="modal-confirm" onclick="confirmStock()">추가</button>
@@ -531,7 +541,18 @@ function renderStocks() {
       const dir = alert.change > 0 ? '▲' : '▼';
       const cls = alert.change > 0 ? 'color:#FF3B30' : 'color:#007AFF';
       changeStr = `<span style="${cls};font-size:12px;font-weight:600">${dir} ${Math.abs(alert.change)}%</span>`;
-      if(alert.alert) alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">⚠️ 경고</span>`;
+
+      // 손익 기준 체크
+      const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
+      if(alertEnabled && alert.profitRate !== undefined) {
+        const profitTarget = s.profitTarget || parseFloat(localStorage.getItem('alert-bulk-profit')) || null;
+        const lossLimit    = s.lossLimit    || parseFloat(localStorage.getItem('alert-bulk-loss'))   || null;
+        if(profitTarget && alert.profitRate >= profitTarget) {
+          alertTag = `<span style="background:#34C759;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">🟢 익절 +${alert.profitRate.toFixed(1)}%</span>`;
+        } else if(lossLimit && alert.profitRate <= -lossLimit) {
+          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">🔴 손절 ${alert.profitRate.toFixed(1)}%</span>`;
+        }
+      }
     }
     return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
@@ -551,7 +572,19 @@ function openAddModal() {
   editingIdx = -1;
   document.getElementById('modal-title').textContent = '종목 추가';
   document.getElementById('modal-confirm').textContent = '추가';
-  ['m-name','m-qty','m-avg'].forEach(id=>document.getElementById(id).value='');
+  ['m-name','m-qty','m-avg','m-profit','m-loss'].forEach(id=>document.getElementById(id).value='');
+  // 손익절 활성화 여부
+  const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
+  const alertBulk    = localStorage.getItem('alert-bulk') === 'true';
+  const inputsDisabled = !alertEnabled || alertBulk;
+  ['m-profit','m-loss'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.disabled = inputsDisabled;
+    el.style.opacity = inputsDisabled ? '0.4' : '1';
+    if(alertBulk) {
+      el.placeholder = `일괄 ${id==='m-profit'?localStorage.getItem('alert-bulk-profit')||'15':''}${id==='m-loss'?localStorage.getItem('alert-bulk-loss')||'10':''}% 적용중`;
+    }
+  });
   document.getElementById('modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-name').focus(),100);
 }
@@ -563,6 +596,17 @@ function openEditModal(i) {
   document.getElementById('m-name').value = s.name;
   document.getElementById('m-qty').value = s.qty;
   document.getElementById('m-avg').value = s.avg;
+  document.getElementById('m-profit').value = s.profitTarget || '';
+  document.getElementById('m-loss').value   = s.lossLimit   || '';
+  // 손익절 활성화 여부
+  const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
+  const alertBulk    = localStorage.getItem('alert-bulk') === 'true';
+  const inputsDisabled = !alertEnabled || alertBulk;
+  ['m-profit','m-loss'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.disabled = inputsDisabled;
+    el.style.opacity = inputsDisabled ? '0.4' : '1';
+  });
   document.getElementById('modal').style.display='flex';
   setTimeout(()=>document.getElementById('m-name').focus(),100);
 }
