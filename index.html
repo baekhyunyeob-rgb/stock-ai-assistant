@@ -231,7 +231,8 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
         </div>
       </div>
     </div>
-      <input type="file" id="file-info" accept="image/*" multiple style="display:none" onchange="handleFile(event,'info')">
+      <div id="prev-info" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px;display:none"></div>
+      <input type="file" id="file-info" accept="image/*" multiple style="display:none" onchange="handleFileInfo(event)">
   </div>
 
   <!-- 설정 패널 -->
@@ -1009,7 +1010,52 @@ function sendMsg(screen){
 }
 
 // ── Images ──
-function handleFile(e,screen){addImages(Array.from(e.target.files).slice(0,2),screen);e.target.value=''}
+function handleFile(e,screen){addImages(Array.from(e.target.files).slice(0,4),screen);e.target.value=''}
+
+async function handleFileInfo(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if(!files.length) return;
+
+  // 미리보기 영역 표시
+  const prev = document.getElementById('prev-info');
+  prev.style.display = 'flex';
+  prev.innerHTML = '';
+
+  // 파일 개수 표시
+  const countDiv = document.createElement('div');
+  countDiv.style.cssText = 'width:100%;font-size:13px;color:var(--text3);padding:0 0 4px';
+  countDiv.textContent = `📷 ${files.length}개 이미지 분석 중...`;
+  prev.appendChild(countDiv);
+
+  // 썸네일 표시
+  const imgDataList = [];
+  for(const file of files) {
+    await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const data = ev.target.result.split(',')[1];
+        imgDataList.push({type: file.type, data});
+        const img = document.createElement('img');
+        img.src = ev.target.result;
+        img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
+        prev.appendChild(img);
+        resolve();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // pendingImgs에 저장
+  pendingImgs['info'] = imgDataList;
+
+  // 자동 전송
+  countDiv.textContent = `📷 ${files.length}개 이미지 종목 인식 중...`;
+  await sendMsg('info');
+  prev.style.display = 'none';
+  prev.innerHTML = '';
+  pendingImgs['info'] = [];
+}
 function handlePaste(e,screen){
   const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
   if(!items.length)return; e.preventDefault();
