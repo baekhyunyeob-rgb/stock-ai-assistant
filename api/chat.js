@@ -1,4 +1,3 @@
-// Node.js runtime — 외부 API 호출 가능
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -8,9 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: { message: 'GEMINI_API_KEY가 설정되지 않았습니다.' } });
-  }
+  if (!apiKey) return res.status(500).json({ error: { message: 'GEMINI_API_KEY가 설정되지 않았습니다.' } });
 
   try {
     const { messages, system, max_tokens } = req.body;
@@ -41,27 +38,69 @@ export default async function handler(req, res) {
     };
 
     const model = 'gemini-2.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // 스트리밍 엔드포인트
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
-    const response = await fetch(url, {
+    const geminiRes = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(geminiBody)
     });
 
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: { message: data.error.message } });
+    if (!geminiRes.ok) {
+      const err = await geminiRes.json();
+      return res.status(500).json({ error: { message: err.error?.message || 'Gemini 오류' } });
+    }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const inputTokens = data.usageMetadata?.promptTokenCount || 0;
-    const outputTokens = data.usageMetadata?.candidatesTokenCount || 0;
+    // 스트리밍 응답 설정
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-    return res.status(200).json({
-      content: [{ type: 'text', text }],
-      usage: { input_tokens: inputTokens, output_tokens: outputTokens }
-    });
+    const reader = geminiRes.body.getReader();
+    const decoder = new TextDecoder();
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (text) {
+            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+          }
+          // 토큰 수집
+          if (parsed.usageMetadata) {
+            inputTokens = parsed.usageMetadata.promptTokenCount || 0;
+            outputTokens = parsed.usageMetadata.candidatesTokenCount || 0;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // 완료 신호 + 토큰 정보
+    res.write(`data: ${JSON.stringify({ done: true, inputTokens, outputTokens })}\n\n`);
+    res.end();
 
   } catch (e) {
-    return res.status(500).json({ error: { message: e.message } });
+    if (!res.headersSent) {
+      res.status(500).json({ error: { message: e.message } });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+      res.end();
+    }
   }
 }

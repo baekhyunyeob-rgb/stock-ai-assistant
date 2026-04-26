@@ -776,60 +776,84 @@ async function callClaude(screen, userText, isAuto=false) {
   try {
     const res=await fetch(API,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:2000,system:getSysPrompt(screen),messages:histories[screen]})
+      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen]})
     });
-    const data=await res.json();
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'서버 오류');}
     removeTyping(screen);
-    if(data.error) throw new Error(data.error.message);
-    const reply=data.content[0].text;
-    histories[screen].push({role:'assistant',content:reply});
 
-    // info 화면 + 이미지 있었을 때 → JSON 파싱해서 종목 자동 등록
-    if(screen==='info') {
-      try {
-        const cleaned = reply.replace(/```json|```/g,'').trim();
-        if(cleaned.startsWith('[')) {
-          const parsed = JSON.parse(cleaned);
-          if(Array.isArray(parsed) && parsed.length>0) {
-            // 중복 종목 확인
-            const duplicates = parsed.filter(s=>stocks.find(e=>e.name===s.name));
-            const newStocks = parsed.filter(s=>!stocks.find(e=>e.name===s.name));
+    // 스트리밍 읽기
+    const reader=res.body.getReader();
+    const decoder=new TextDecoder();
+    let fullText='';
+    let msgDiv=null;
+    let buf='';
 
-            // 새 종목 먼저 추가
-            newStocks.forEach(s=>{ if(s.name&&s.qty&&s.avg) stocks.push(s); });
-
-            if(duplicates.length>0) {
-              // 중복 종목 있으면 사용자에게 물어보기
-              window._pendingDuplicates = duplicates;
-              renderStocks();
-              const area = document.getElementById('chat-info');
-              const div = document.createElement('div');
-              div.className = 'msg system';
-              div.style.maxWidth='96%';
-              div.style.textAlign='left';
-              div.innerHTML = `⚠️ 이미 등록된 종목이 있어요:<br><strong>${duplicates.map(s=>s.name).join(', ')}</strong><br><br>
-                <div style="display:flex;gap:8px;margin-top:8px">
-                  <button onclick="resolveDuplicates('merge')" style="flex:1;padding:10px;border-radius:10px;border:none;background:#007AFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">합산 (수량·평단 합계)</button>
-                  <button onclick="resolveDuplicates('replace')" style="flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">교체 (새 데이터로)</button>
-                </div>`;
-              area.appendChild(div);
-              area.scrollTop = area.scrollHeight;
-              if(newStocks.length>0) addMsg(screen,'ai',`✅ 신규 ${newStocks.length}개 종목 등록: ${newStocks.map(s=>s.name).join(', ')}`);
-            } else {
-              renderStocks();
-              addMsg(screen,'ai',`✅ ${parsed.length}개 종목 등록 완료: ${parsed.map(s=>s.name).join(', ')}\n목록을 확인하고 수정이 필요하면 말씀해주세요.`);
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buf+=decoder.decode(value,{stream:true});
+      const lines2=buf.split('\n');
+      buf=lines2.pop()||'';
+      for(const line of lines2){
+        if(!line.startsWith('data: ')) continue;
+        try{
+          const p=JSON.parse(line.slice(6).trim());
+          if(p.error) throw new Error(p.error);
+          if(p.text){
+            fullText+=p.text;
+            if(!msgDiv){
+              const area=document.getElementById('chat-'+screen);
+              msgDiv=document.createElement('div');
+              msgDiv.className='msg ai';
+              area.appendChild(msgDiv);
             }
-          } else { addMsg(screen,'ai',reply); }
-        } else { addMsg(screen,'ai',reply); }
-      } catch(e) { addMsg(screen,'ai',reply); }
-    } else {
-      addMsg(screen,'ai',reply);
+            const fmt=fullText
+              .replace(/###\s*/g,'').replace(/##\s*/g,'').replace(/#\s*/g,'')
+              .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'$1')
+              .replace(/---/g,'').replace(/\n/g,'<br>');
+            msgDiv.innerHTML=fmt;
+            const area=document.getElementById('chat-'+screen);
+            if(area) area.scrollTop=area.scrollHeight;
+          }
+          if(p.done){
+            if(tokens[screen]) updateTok(screen,p.inputTokens||0,p.outputTokens||0);
+            histories[screen].push({role:'assistant',content:fullText});
+            // info 화면 종목 파싱
+            if(screen==='info'){
+              try{
+                const cleaned=fullText.replace(/```json|```/g,'').trim();
+                if(cleaned.startsWith('[')){
+                  const parsed2=JSON.parse(cleaned);
+                  if(Array.isArray(parsed2)&&parsed2.length>0){
+                    const dups=parsed2.filter(s=>stocks.find(e=>e.name===s.name));
+                    const news2=parsed2.filter(s=>!stocks.find(e=>e.name===s.name));
+                    news2.forEach(s=>{if(s.name&&s.qty&&s.avg)stocks.push(s);});
+                    if(dups.length>0){
+                      window._pendingDuplicates=dups;
+                      renderStocks();
+                      if(msgDiv) msgDiv.remove();
+                      const area=document.getElementById('chat-info');
+                      const div=document.createElement('div');
+                      div.className='msg system';div.style.maxWidth='96%';div.style.textAlign='left';
+                      div.innerHTML='⚠️ 이미 등록된 종목: <strong>'+dups.map(s=>s.name).join(', ')+'</strong><br><br><div style="display:flex;gap:8px;margin-top:8px"><button onclick="resolveDuplicates('merge')" style="flex:1;padding:10px;border-radius:10px;border:none;background:#007AFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">합산</button><button onclick="resolveDuplicates('replace')" style="flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">교체</button></div>';
+                      area.appendChild(div);area.scrollTop=area.scrollHeight;
+                      if(news2.length>0) addMsg(screen,'ai','✅ 신규 '+news2.length+'개 종목 등록: '+news2.map(s=>s.name).join(', '));
+                    } else {
+                      renderStocks();
+                      if(msgDiv) msgDiv.innerHTML='✅ '+parsed2.length+'개 종목 등록 완료: '+parsed2.map(s=>s.name).join(', ');
+                    }
+                  }
+                }
+              }catch(e2){}
+            }
+          }
+        }catch(e){}
+      }
     }
-    if(tokens[screen]) updateTok(screen,data.usage?.input_tokens||0,data.usage?.output_tokens||0);
   } catch(e) {
     removeTyping(screen);
-    const d=document.createElement('div'); d.className='error-msg';
-    d.textContent='오류: '+e.message; document.getElementById('chat-'+screen)?.appendChild(d);
+    const d=document.createElement('div');d.className='error-msg';
+    d.textContent='오류: '+e.message;document.getElementById('chat-'+screen)?.appendChild(d);
   }
   if(btn)btn.disabled=false;
 }
