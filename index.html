@@ -87,18 +87,18 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 /* PANELS */
 .panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
 .panel.active{display:flex}
-.panel-scroll{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.panel-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
 
 /* CARDS */
 .card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
 .card-label{font-size:11px;font-weight:600;color:var(--text3);padding:10px 16px 4px;letter-spacing:.04em;text-transform:uppercase}
-.row{display:flex;align-items:center;padding:12px 16px;border-top:.5px solid var(--border);gap:10px}
+.row{display:flex;align-items:center;padding:10px 14px;border-top:.5px solid var(--border);gap:10px}
 .row:first-of-type{border-top:none}
 .row-label{font-size:15px;flex:1}
 .row select,.row input[type=text]{border:none;background:none;font-size:15px;color:var(--text3);text-align:right;font-family:inherit;outline:none;cursor:pointer;max-width:170px;}
 
 /* STOCK LIST */
-.stock-row{display:flex;align-items:center;padding:11px 14px;border-top:.5px solid var(--border);gap:10px}
+.stock-row{display:flex;align-items:center;padding:10px 12px;border-top:.5px solid var(--border);gap:8px}
 .stock-icon{width:36px;height:36px;border-radius:9px;background:var(--info-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--info);flex-shrink:0;}
 .stock-info{flex:1;min-width:0}
 .stock-name{font-size:14px;font-weight:600}
@@ -128,7 +128,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* CHAT */
 .chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
-.chat-area{flex:1;overflow-y:auto;padding:12px 8px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
+.chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
 .msg{max-width:92%;font-size:14px;line-height:1.7;word-break:keep-all}
 .msg.user{max-width:80%}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
@@ -207,7 +207,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   </div>
 
   <!-- 보유종목 패널 -->
-  <div class="panel active" id="panel-stocks">
+  <div class="panel active" id="panel-stocks" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
     <div class="panel-scroll" style="overflow-y:auto">
       <div class="card">
         <div class="card-label">보유종목</div>
@@ -236,7 +236,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   </div>
 
   <!-- 설정 패널 -->
-  <div class="panel" id="panel-config">
+  <div class="panel" id="panel-config" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
     <div class="panel-scroll">
 
       <!-- AI 어시스턴트 선택 -->
