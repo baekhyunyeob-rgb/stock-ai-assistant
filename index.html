@@ -1010,50 +1010,59 @@ function sendMsg(screen){
 }
 
 // ── Images ──
-function handleFile(e,screen){addImages(Array.from(e.target.files).slice(0,4),screen);e.target.value=''}
+function handleFile(e,screen){addImages(Array.from(e.target.files).slice(0,4),screen);e.target.value='';}
+
+// 이미지 리사이징 (최대 1200px, 용량 축소)
+function resizeImage(file, maxPx=1200) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ type: 'image/jpeg', data: dataUrl.split(',')[1], dataUrl });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 async function handleFileInfo(e) {
   const files = Array.from(e.target.files);
   e.target.value = '';
   if(!files.length) return;
 
-  // 미리보기 영역 표시
   const prev = document.getElementById('prev-info');
-  prev.style.display = 'flex';
-  prev.innerHTML = '';
+  if(prev) { prev.style.display='flex'; prev.innerHTML=''; }
 
-  // 파일 개수 표시
   const countDiv = document.createElement('div');
   countDiv.style.cssText = 'width:100%;font-size:13px;color:var(--text3);padding:0 0 4px';
-  countDiv.textContent = `📷 ${files.length}개 이미지 분석 중...`;
-  prev.appendChild(countDiv);
+  countDiv.textContent = `📷 ${files.length}개 이미지 처리 중...`;
+  if(prev) prev.appendChild(countDiv);
 
-  // 썸네일 표시
   const imgDataList = [];
   for(const file of files) {
-    await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const data = ev.target.result.split(',')[1];
-        imgDataList.push({type: file.type, data});
-        const img = document.createElement('img');
-        img.src = ev.target.result;
-        img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
-        prev.appendChild(img);
-        resolve();
-      };
-      reader.readAsDataURL(file);
-    });
+    const {type, data, dataUrl} = await resizeImage(file);
+    imgDataList.push({type, data});
+    if(prev) {
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
+      prev.appendChild(img);
+    }
   }
 
-  // pendingImgs에 저장
   pendingImgs['info'] = imgDataList;
-
-  // 자동 전송
-  countDiv.textContent = `📷 ${files.length}개 이미지 종목 인식 중...`;
+  if(countDiv) countDiv.textContent = `📷 ${files.length}개 이미지 종목 인식 중...`;
   await sendMsg('info');
-  prev.style.display = 'none';
-  prev.innerHTML = '';
+  if(prev) { prev.style.display='none'; prev.innerHTML=''; }
   pendingImgs['info'] = [];
 }
 function handlePaste(e,screen){
@@ -1061,21 +1070,17 @@ function handlePaste(e,screen){
   if(!items.length)return; e.preventDefault();
   addImages(items.map(i=>i.getAsFile()).filter(Boolean),screen);
 }
-function addImages(files,screen){
+async function addImages(files,screen){
   if(!pendingImgs[screen])pendingImgs[screen]=[];
-  files.forEach(file=>{
-    if(pendingImgs[screen].length>=2)return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      const data=ev.target.result.split(',')[1];
-      const idx=pendingImgs[screen].push({type:file.type,data})-1;
-      const prev=document.getElementById('prev-'+screen); if(!prev)return;
-      const wrap=document.createElement('div'); wrap.className='img-thumb-wrap';
-      wrap.innerHTML=`<img class="img-thumb" src="${ev.target.result}"><button class="img-remove" onclick="removeImg('${screen}',${idx})">×</button>`;
-      prev.appendChild(wrap);
-    };
-    reader.readAsDataURL(file);
-  });
+  for(const file of files){
+    if(pendingImgs[screen].length>=2)break;
+    const {type,data,dataUrl} = await resizeImage(file);
+    const idx=pendingImgs[screen].push({type,data})-1;
+    const prev=document.getElementById('prev-'+screen); if(!prev)continue;
+    const wrap=document.createElement('div'); wrap.className='img-thumb-wrap';
+    wrap.innerHTML=`<img class="img-thumb" src="${dataUrl}"><button class="img-remove" onclick="removeImg('${screen}',${idx})">×</button>`;
+    prev.appendChild(wrap);
+  }
 }
 function removeImg(screen,i){
   if(pendingImgs[screen])pendingImgs[screen].splice(i,1);
