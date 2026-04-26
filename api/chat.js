@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       generationConfig: { maxOutputTokens: max_tokens || 1000, temperature: 0.7 }
     };
 
-    const model = 'gemini-2.5-flash';
+    const model = 'gemini-2.5-flash-lite';
     // 스트리밍 엔드포인트
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
