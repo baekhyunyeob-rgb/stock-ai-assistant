@@ -66,7 +66,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .up{color:var(--up)}.dn{color:var(--down)}.fl{color:var(--text3)}
 
 /* NEWS STRIP */
-.news-strip{flex-shrink:0;height:34px;background:var(--info-bg);border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 10px;cursor:pointer;overflow:hidden;}
+.news-strip{flex-shrink:0;background:var(--info-bg);display:flex;align-items:center;gap:8px;padding:0 10px;cursor:pointer;overflow:hidden;}
 .news-badge{font-size:10px;font-weight:700;color:var(--info);background:var(--bg1);padding:2px 7px;border-radius:10px;flex-shrink:0;}
 .news-scroll-wrap{flex:1;overflow:hidden;height:100%;display:flex;align-items:center;}
 .news-scroll-inner{white-space:nowrap;font-size:12px;color:var(--text2);animation:newstick 25s linear infinite;}
@@ -334,10 +334,18 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
       </div>
     </div>
   </div>
-  <div class="news-strip" id="news-strip" onclick="onNewsTap()">
-    <div class="news-badge">📰 뉴스</div>
-    <div class="news-scroll-wrap">
-      <div class="news-scroll-inner" id="news-scroll">뉴스 불러오는 중...</div>
+  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border)">
+    <div class="news-strip" onclick="onNewsTap('dart')" style="border-bottom:.5px solid var(--border);height:30px">
+      <div class="news-badge">📋 공시</div>
+      <div class="news-scroll-wrap">
+        <div class="news-scroll-inner" id="dart-scroll">공시 불러오는 중...</div>
+      </div>
+    </div>
+    <div class="news-strip" onclick="onNewsTap('news')" style="height:30px">
+      <div class="news-badge">📰 뉴스</div>
+      <div class="news-scroll-wrap">
+        <div class="news-scroll-inner" id="news-scroll">뉴스 불러오는 중...</div>
+      </div>
     </div>
   </div>
   <div class="tab-strip" id="time-tabs">
@@ -635,11 +643,27 @@ async function fetchNews() {
 
 function startNewsTicker() {
   if (cachedNews.length===0) return;
-  const el = document.getElementById('news-scroll');
-  el.textContent = cachedNews.map(n=>n.title).join('  ·  ');
+  
+  const dartItems = cachedNews.filter(n=>n.type==='dart');
+  const newsItems = cachedNews.filter(n=>n.type==='news');
+
+  const dartEl = document.getElementById('dart-scroll');
+  const newsEl = document.getElementById('news-scroll');
+
+  if(dartItems.length>0) {
+    dartEl.textContent = dartItems.map(n=>`${n.corp_name} · ${n.title}`).join('    　    ');
+  } else {
+    dartEl.textContent = '최근 공시 없음';
+  }
+
+  if(newsItems.length>0) {
+    newsEl.textContent = newsItems.map(n=>`${n.corp_name} · ${n.title}`).join('    　    ');
+  } else {
+    newsEl.textContent = '최근 뉴스 없음';
+  }
 }
 
-function onNewsTap() {
+function onNewsTap(filterType) {
   if (cachedNews.length===0) return;
   const area = document.getElementById('chat-briefing');
   // 이전 뉴스 메시지 제거
