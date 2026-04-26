@@ -288,6 +288,7 @@ body {
       <div class="card">
         <div class="card-label">보유종목</div>
         <div id="stock-list"></div>
+        <div id="chat-info" style="display:flex;flex-direction:column;gap:8px;padding:0 4px"></div>
         <div style="display:flex;border-top:.5px solid var(--border)">
           <button class="add-row-btn" style="border-top:none;border-right:.5px solid var(--border)" onclick="openAddModal()">＋ 종목 추가</button>
           <button class="add-row-btn" style="border-top:none" onclick="triggerFile('file-info')">📷 이미지로 등록</button>
@@ -306,7 +307,7 @@ body {
           <div class="disc-item"><span class="disc-num">⑤</span><span class="disc-text">본 앱 이용 시 위 내용에 동의한 것으로 간주합니다.</span></div>
         </div>
       </div>
-      <div id="prev-info" style="display:none;flex-wrap:wrap;gap:8px"></div>
+      <div id="prev-info" style="display:none;flex-wrap:wrap;gap:8px;padding:8px 12px"></div>
       <input type="file" id="file-info" accept="image/*" multiple style="display:none">
     </div>
   </div>
@@ -605,9 +606,13 @@ function renderStocks() {
     let alertTag = '';
     let changeStr = '';
     if(alert && !alert.error) {
+      // 전일대비 등락률
       const dir = alert.change > 0 ? '▲' : '▼';
-      const cls = alert.change > 0 ? 'color:#FF3B30' : 'color:#34C759';
-      changeStr = `<span style="${cls};font-size:11px;font-weight:600">${dir}${Math.abs(alert.change)}%</span>`;
+      const dayColor = alert.change > 0 ? 'color:#FF3B30' : 'color:#34C759';
+      // 평단대비 수익률
+      const pDir = alert.profitRate >= 0 ? '▲' : '▼';
+      const pColor = alert.profitRate >= 0 ? 'color:#FF3B30' : 'color:#34C759';
+      changeStr = `<span style="${dayColor};font-size:11px;font-weight:600">${dir}${Math.abs(alert.change)}%</span> <span style="font-size:10px;color:var(--text3)">전일</span>`;
 
       // 손익 기준 체크
       const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
@@ -1121,9 +1126,10 @@ async function handleFileInfo(e) {
   const prev = document.getElementById('prev-info');
   if(prev) { prev.style.display='flex'; prev.innerHTML=''; }
 
+  // 로딩 텍스트
   const countDiv = document.createElement('div');
-  countDiv.style.cssText = 'width:100%;font-size:13px;color:var(--text3);padding:0 0 4px';
-  countDiv.textContent = `📷 ${files.length}개 이미지 처리 중...`;
+  countDiv.style.cssText = 'width:100%;font-size:13px;color:var(--text3);padding:4px 0';
+  countDiv.textContent = `📷 ${files.length}개 이미지 분석 중...`;
   if(prev) prev.appendChild(countDiv);
 
   const imgDataList = [];
@@ -1131,15 +1137,18 @@ async function handleFileInfo(e) {
     const {type, data, dataUrl} = await resizeImage(file);
     imgDataList.push({type, data});
     if(prev) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative';
       const img = document.createElement('img');
       img.src = dataUrl;
-      img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border)';
-      prev.appendChild(img);
+      img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid var(--border)';
+      wrap.appendChild(img);
+      prev.appendChild(wrap);
     }
   }
 
   pendingImgs['info'] = imgDataList;
-  if(countDiv) countDiv.textContent = `📷 ${files.length}개 이미지 종목 인식 중...`;
+  if(countDiv) countDiv.textContent = `📷 종목 인식 중... 잠시만 기다려주세요`;
   await sendMsg('info');
   if(prev) { prev.style.display='none'; prev.innerHTML=''; }
   pendingImgs['info'] = [];
@@ -1152,7 +1161,7 @@ function handlePaste(e,screen){
 async function addImages(files,screen){
   if(!pendingImgs[screen])pendingImgs[screen]=[];
   for(const file of files){
-    if(pendingImgs[screen].length>=2)break;
+    if(pendingImgs[screen].length>=4)break;
     const {type,data,dataUrl} = await resizeImage(file);
     const idx=pendingImgs[screen].push({type,data})-1;
     const prev=document.getElementById('prev-'+screen); if(!prev)continue;
