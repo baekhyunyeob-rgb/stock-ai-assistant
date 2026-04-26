@@ -632,10 +632,11 @@ function getUserCtx() {
 function getSysPrompt(screen) {
   const ctx = getUserCtx();
   const base = `당신은 한국 주식 입문자를 위한 AI 어시스턴트입니다. 다음 규칙을 반드시 따르세요:
-1. 인사말, 안부, "안녕하세요" 등 불필요한 서두 금지. 바로 핵심부터 시작.
-2. 500토큰 이내로 간결하게. 불필요한 수식어 생략.
-3. 증권사 앱에서 볼 수 있는 수치보다 '왜', '내 종목에 어떤 의미인지' 중심으로 해설.
-4. 단정적 매수·매도 권고 금지.
+1. 인사말, 안부, "안녕하세요" 등 불필요한 서두 완전 금지. 바로 핵심부터.
+2. 마크다운(###, **, --, --- 등) 사용 금지. 일반 텍스트로만 작성.
+3. 400토큰 이내로 간결하게. 불필요한 수식어 생략.
+4. 증권사 앱에서 볼 수 있는 수치보다 '왜', '내 종목에 어떤 의미인지' 중심으로 해설.
+5. 단정적 매수·매도 권고 금지.
 \n${ctx}`;
   if (screen==='info') return `당신은 한국 주식 앱의 보유종목 등록 도우미입니다.
 사용자가 증권사 앱 화면 이미지를 첨부하면, 이미지에서 종목명·수량·평균단가를 추출해서 반드시 아래 형식의 순수 JSON 배열로만 답하세요.
@@ -764,7 +765,16 @@ function updateStepUI() {
 function addMsg(screen, role, text) {
   const area=document.getElementById('chat-'+screen); if(!area)return;
   const div=document.createElement('div'); div.className='msg '+role;
-  div.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  // 마크다운 기본 변환
+  const formatted = text
+    .replace(/###\s*/g,'')
+    .replace(/##\s*/g,'')
+    .replace(/#\s*/g,'')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'$1')
+    .replace(/---/g,'')
+    .replace(/\n/g,'<br>');
+  div.innerHTML=formatted;
   area.appendChild(div); area.scrollTop=area.scrollHeight;
 }
 function showTyping(screen) {
