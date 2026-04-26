@@ -642,7 +642,8 @@ function getSysPrompt(screen) {
 4. 단정적 매수·매도 권고 금지.
 \n${ctx}`;
   if (screen==='info') return `당신은 한국 주식 앱의 보유종목 등록 도우미입니다.
-사용자가 증권사 앱 화면 이미지를 첨부하면, 이미지에서 종목명·수량·평균단가를 추출해서 반드시 아래 형식의 JSON으로만 답하세요. 다른 설명 없이 JSON만:
+사용자가 증권사 앱 화면 이미지를 첨부하면, 이미지에서 종목명·수량·평균단가를 추출해서 반드시 아래 형식의 순수 JSON 배열로만 답하세요.
+절대로 마크다운 코드블록(\`\`\`json)을 사용하지 마세요. 오직 JSON만:
 [{"name":"종목명","qty":수량숫자,"avg":평단가숫자}]
 이미지 없이 질문하면 보유종목 관련 질문에 친절하게 답해주세요.
 ${ctx}`;
@@ -812,13 +813,41 @@ async function callClaude(screen, userText, isAuto=false) {
     histories[screen].push({role:'assistant',content:reply});
 
     // info 화면 + 이미지 있었을 때 → JSON 파싱해서 종목 자동 등록
-    if(screen==='info' && reply.trim().startsWith('[')) {
+    if(screen==='info') {
       try {
-        const parsed = JSON.parse(reply.trim());
-        if(Array.isArray(parsed) && parsed.length>0) {
-          parsed.forEach(s=>{ if(s.name&&s.qty&&s.avg) stocks.push(s); });
-          renderStocks();
-          addMsg(screen,'ai',`✅ ${parsed.length}개 종목 등록 완료: ${parsed.map(s=>s.name).join(', ')}\n목록을 확인하고 수정이 필요하면 말씀해주세요.`);
+        const cleaned = reply.replace(/```json|```/g,'').trim();
+        if(cleaned.startsWith('[')) {
+          const parsed = JSON.parse(cleaned);
+          if(Array.isArray(parsed) && parsed.length>0) {
+            // 중복 종목 확인
+            const duplicates = parsed.filter(s=>stocks.find(e=>e.name===s.name));
+            const newStocks = parsed.filter(s=>!stocks.find(e=>e.name===s.name));
+
+            // 새 종목 먼저 추가
+            newStocks.forEach(s=>{ if(s.name&&s.qty&&s.avg) stocks.push(s); });
+
+            if(duplicates.length>0) {
+              // 중복 종목 있으면 사용자에게 물어보기
+              window._pendingDuplicates = duplicates;
+              renderStocks();
+              const area = document.getElementById('chat-info');
+              const div = document.createElement('div');
+              div.className = 'msg system';
+              div.style.maxWidth='96%';
+              div.style.textAlign='left';
+              div.innerHTML = `⚠️ 이미 등록된 종목이 있어요:<br><strong>${duplicates.map(s=>s.name).join(', ')}</strong><br><br>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button onclick="resolveDuplicates('merge')" style="flex:1;padding:10px;border-radius:10px;border:none;background:#007AFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">합산 (수량·평단 합계)</button>
+                  <button onclick="resolveDuplicates('replace')" style="flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">교체 (새 데이터로)</button>
+                </div>`;
+              area.appendChild(div);
+              area.scrollTop = area.scrollHeight;
+              if(newStocks.length>0) addMsg(screen,'ai',`✅ 신규 ${newStocks.length}개 종목 등록: ${newStocks.map(s=>s.name).join(', ')}`);
+            } else {
+              renderStocks();
+              addMsg(screen,'ai',`✅ ${parsed.length}개 종목 등록 완료: ${parsed.map(s=>s.name).join(', ')}\n목록을 확인하고 수정이 필요하면 말씀해주세요.`);
+            }
+          } else { addMsg(screen,'ai',reply); }
         } else { addMsg(screen,'ai',reply); }
       } catch(e) { addMsg(screen,'ai',reply); }
     } else {
@@ -881,6 +910,38 @@ function removeImg(screen,i){
     wrap.innerHTML=`<img class="img-thumb" src="data:${img.type};base64,${img.data}"><button class="img-remove" onclick="removeImg('${screen}',${j})">×</button>`;
     prev.appendChild(wrap);
   });
+}
+
+// ── 중복 종목 처리 ──
+function resolveDuplicates(mode) {
+  const duplicates = window._pendingDuplicates || [];
+  if(!duplicates.length) return;
+
+  duplicates.forEach(s=>{
+    const idx = stocks.findIndex(e=>e.name===s.name);
+    if(idx===-1) return;
+    if(mode==='merge') {
+      // 합산: 수량 합계, 평단가 가중평균
+      const existing = stocks[idx];
+      const totalQty = existing.qty + s.qty;
+      const avgPrice = Math.round((existing.qty*existing.avg + s.qty*s.avg) / totalQty);
+      stocks[idx] = {name:s.name, qty:totalQty, avg:avgPrice};
+    } else {
+      // 교체
+      stocks[idx] = {name:s.name, qty:s.qty, avg:s.avg};
+    }
+  });
+
+  renderStocks();
+  window._pendingDuplicates = [];
+
+  // 선택 버튼 제거
+  const area = document.getElementById('chat-info');
+  const systemMsgs = area.querySelectorAll('.msg.system');
+  if(systemMsgs.length>0) systemMsgs[systemMsgs.length-1].remove();
+
+  const modeText = mode==='merge' ? '합산' : '교체';
+  addMsg('info','ai',`✅ ${duplicates.map(s=>s.name).join(', ')} ${modeText} 완료\n최종 종목 목록을 확인해주세요.`);
 }
 
 // ── Init ──
