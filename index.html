@@ -114,8 +114,8 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .accordion-title{font-size:14px;font-weight:600;color:var(--danger)}
 .accordion-arrow{font-size:11px;color:var(--text3);transition:transform .25s}
 .accordion-arrow.open{transform:rotate(180deg)}
-.accordion-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.accordion-body.open{max-height:500px;border-top:.5px solid var(--border)}
+.accordion-body{max-height:0;overflow-y:auto;transition:max-height .3s ease;}
+.accordion-body.open{max-height:2000px;border-top:.5px solid var(--border)}
 .disc-item{display:flex;gap:10px;padding:10px 16px;border-top:.5px solid var(--border)}
 .disc-item:first-child{border-top:none}
 .disc-num{color:var(--danger);font-weight:700;flex-shrink:0;font-size:13px}
@@ -208,7 +208,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
   <!-- 보유종목 패널 -->
   <div class="panel active" id="panel-stocks">
-    <div class="panel-scroll">
+    <div class="panel-scroll" style="overflow-y:auto">
       <div class="card">
         <div class="card-label">보유종목</div>
         <div id="stock-list"></div>
