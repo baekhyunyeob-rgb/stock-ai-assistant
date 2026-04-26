@@ -838,7 +838,19 @@ async function callClaude(screen, userText, isAuto=false) {
                       const area=document.getElementById('chat-info');
                       const div=document.createElement('div');
                       div.className='msg system';div.style.maxWidth='96%';div.style.textAlign='left';
-                      div.innerHTML='⚠️ 이미 등록된 종목: <strong>'+dups.map(s=>s.name).join(', ')+'</strong><br><br><div style="display:flex;gap:8px;margin-top:8px"><button onclick="resolveDuplicates('merge')" style="flex:1;padding:10px;border-radius:10px;border:none;background:#007AFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">합산</button><button onclick="resolveDuplicates('replace')" style="flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">교체</button></div>';
+                      const mergeBtn=document.createElement('button');
+                      mergeBtn.textContent='합산';
+                      mergeBtn.style.cssText='flex:1;padding:10px;border-radius:10px;border:none;background:#007AFF;color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-right:8px';
+                      mergeBtn.onclick=()=>resolveDuplicates('merge');
+                      const replBtn=document.createElement('button');
+                      replBtn.textContent='교체';
+                      replBtn.style.cssText='flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;background:none;font-size:13px;font-weight:600;cursor:pointer';
+                      replBtn.onclick=()=>resolveDuplicates('replace');
+                      const btnRow=document.createElement('div');
+                      btnRow.style.cssText='display:flex;gap:8px;margin-top:8px';
+                      btnRow.appendChild(mergeBtn);btnRow.appendChild(replBtn);
+                      div.innerHTML='⚠️ 이미 등록된 종목: <strong>'+dups.map(s=>s.name).join(', ')+'</strong><br><br>';
+                      div.appendChild(btnRow);
                       area.appendChild(div);area.scrollTop=area.scrollHeight;
                       if(news2.length>0) addMsg(screen,'ai','✅ 신규 '+news2.length+'개 종목 등록: '+news2.map(s=>s.name).join(', '));
                     } else {
