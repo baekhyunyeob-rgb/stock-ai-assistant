@@ -1002,10 +1002,11 @@ function handleKey(e,screen){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault()
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
 function triggerFile(id){document.getElementById(id).click()}
 function sendMsg(screen){
-  const inp=document.getElementById('inp-'+screen); if(!inp)return;
-  const text=inp.value.trim(); const imgs=pendingImgs[screen]||[];
+  const inp=document.getElementById('inp-'+screen);
+  const text=inp?inp.value.trim():'';
+  const imgs=pendingImgs[screen]||[];
   if(!text&&imgs.length===0)return;
-  inp.value=''; inp.style.height='auto';
+  if(inp){inp.value='';inp.style.height='auto';}
   callClaude(screen,text);
 }
 
