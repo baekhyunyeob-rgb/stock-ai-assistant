@@ -43,7 +43,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* SCREENS */
-.screen{display:none;flex:1;flex-direction:column;min-height:0}
+.screen{display:none;flex:1;flex-direction:column;min-height:0;touch-action:pan-y}
 .screen.active{display:flex;flex-direction:column}
 
 /* NAV */
@@ -87,7 +87,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 /* PANELS */
 .panel{display:none;flex:1;flex-direction:column;min-height:0}
 .panel.active{display:flex;flex-direction:column}
-.panel-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.panel-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 
 /* CARDS */
 .card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
@@ -128,7 +128,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 
 /* CHAT */
 .chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
-.chat-area{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.chat-area{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 .msg{max-width:92%;font-size:14px;line-height:1.7;word-break:keep-all}
 .msg.user{max-width:80%}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
