@@ -212,7 +212,10 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
       <div class="card">
         <div class="card-label">보유종목</div>
         <div id="stock-list"></div>
-        <button class="add-row-btn" onclick="openAddModal()">＋ 종목 추가</button>
+        <div style="display:flex;border-top:.5px solid var(--border)">
+        <button class="add-row-btn" style="border-top:none;border-right:.5px solid var(--border)" onclick="openAddModal()">＋ 종목 추가</button>
+        <button class="add-row-btn" style="border-top:none" onclick="triggerFile('file-info')">📷 이미지로 등록</button>
+      </div>
       </div>
       <div class="accordion">
         <div class="accordion-header" onclick="toggleAccordion()">
@@ -228,16 +231,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
         </div>
       </div>
     </div>
-    <div class="input-bar">
-      <div class="img-preview-row" id="prev-info"></div>
-      <div class="input-row">
-        <button class="icon-btn" onclick="triggerFile('file-info')">📎</button>
-        <textarea id="inp-info" placeholder="종목 화면 붙여넣기 또는 질문..." rows="1"
-          onkeydown="handleKey(event,'info')" oninput="autoResize(this)" onpaste="handlePaste(event,'info')"></textarea>
-        <button class="send-btn" id="send-info" onclick="sendMsg('info')">↑</button>
-      </div>
       <input type="file" id="file-info" accept="image/*" multiple style="display:none" onchange="handleFile(event,'info')">
-    </div>
   </div>
 
   <!-- 설정 패널 -->
@@ -315,13 +309,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
       </div>
 
     </div>
-    <div class="input-bar">
-      <div class="input-row">
-        <textarea id="inp-config" placeholder="설정 관련 질문..." rows="1"
-          onkeydown="handleKey(event,'config')" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="send-config" onclick="sendMsg('config')">↑</button>
-      </div>
-    </div>
+
   </div>
 </div>
 
