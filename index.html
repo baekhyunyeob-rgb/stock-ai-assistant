@@ -6,6 +6,87 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 <title>Stock AI Assistant</title>
 <style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+/* ── LAYOUT (새로 작성) ── */
+html, body {
+  height: 100%;
+  height: 100dvh;
+}
+body {
+  font-family: -apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* screen: 화면 전환 단위 */
+.screen {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.screen.active {
+  display: flex;
+}
+
+/* panel: 탭 전환 단위 */
+.panel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel.active {
+  display: flex;
+}
+
+/* 스크롤 영역 */
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+
+/* 채팅 래퍼 */
+.chat-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 채팅 스크롤 영역 */
+.chat-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 8px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+
+/* ── COMPONENT CSS (기존 유지) ── */
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#f2f2f7;--bg1:#fff;--bg2:#f5f5f7;--bg3:#e8e8ed;
@@ -27,8 +108,6 @@
   --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
   --shadow:0 1px 8px rgba(0,0,0,.3);
 }}
-html{height:100%;height:100dvh}
-body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:430px;margin:0 auto;height:100%;height:100dvh;overflow:hidden;}
 
 /* HEADER */
 .app-header{flex-shrink:0;background:rgba(255,255,255,.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:.5px solid var(--border);display:flex;align-items:center;padding:10px 16px;gap:12px;}
@@ -43,8 +122,6 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* SCREENS */
-.screen{display:none;flex:1;flex-direction:column;min-height:0;touch-action:pan-y}
-.screen.active{display:flex;flex-direction:column}
 
 /* NAV */
 .bottom-nav{flex-shrink:0;display:flex;background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:.5px solid var(--border);padding-bottom:max(env(safe-area-inset-bottom,0px),6px);}
@@ -85,9 +162,6 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .inner-tab.active{color:var(--info);border-bottom-color:var(--info)}
 
 /* PANELS */
-.panel{display:none;flex:1;flex-direction:column;min-height:0}
-.panel.active{display:flex;flex-direction:column}
-.panel-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 
 /* CARDS */
 .card{background:var(--bg1);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
@@ -127,8 +201,6 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .token-cost{margin-left:auto;font-size:11px;color:var(--success);font-weight:600}
 
 /* CHAT */
-.chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
-.chat-area{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:8px 6px 6px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
 .msg{max-width:92%;font-size:14px;line-height:1.7;word-break:keep-all}
 .msg.user{max-width:80%}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
@@ -185,6 +257,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
 .modal-btns button{flex:1;padding:14px;border-radius:10px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;border:none;}
 .btn-cancel{background:var(--bg2);color:var(--text2)}
 .btn-confirm{background:var(--info);color:#fff}
+
 </style>
 </head>
 <body>
@@ -196,7 +269,10 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
     <div class="app-title">Stock AI Assistant</div>
     <div class="app-sub">한국주식 AI 어시스턴트 · Beta</div>
   </div>
-  <div class="live-pill"><div class="live-dot"></div><div class="live-label">LIVE</div></div>
+  <div class="live-pill">
+    <div class="live-dot"></div>
+    <span class="live-label">LIVE</span>
+  </div>
 </header>
 
 <!-- ═══ SCREEN 1: 내 정보 ═══ -->
@@ -439,6 +515,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   </div>
 </div>
 
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" onclick="switchScreen('info',this)"><span class="nav-icon">👤</span>내 정보</button>
@@ -471,6 +548,7 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
     </div>
   </div>
 </div>
+
 
 <script>
 // ── 설정 ──
@@ -1237,4 +1315,5 @@ fetchStockAlert();
 })();
 </script>
 </body>
+
 </html>
