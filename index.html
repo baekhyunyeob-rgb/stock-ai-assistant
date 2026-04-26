@@ -243,24 +243,17 @@ body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
   <div class="panel" id="panel-config">
     <div class="panel-scroll">
       <div class="card">
-        <div class="card-label">투자 프로필</div>
-        <div class="row"><span class="row-label">투자 경력</span>
-          <select id="career"><option>입문 (1년 미만)</option><option>초급 (1~2년)</option><option>중급 (3년 이상)</option></select>
+        <div class="card-label">경고 알림 기준</div>
+        <div class="row">
+          <span class="row-label">급등/급락 기준</span>
+          <select id="alert-pct" onchange="fetchStockAlert()">
+            <option>±3%</option>
+            <option selected>±5%</option>
+            <option>±10%</option>
+          </select>
         </div>
-        <div class="row"><span class="row-label">투자 성향</span>
-          <select id="style"><option>안정 추구형</option><option>중립형</option><option>공격 투자형</option></select>
-        </div>
-        <div class="row"><span class="row-label">관심 섹터</span>
-          <input type="text" id="sector" value="반도체, 2차전지">
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">알림</div>
-        <div class="row"><span class="row-label">급등/급락 기준</span>
-          <select><option>±3%</option><option selected>±5%</option><option>±10%</option></select>
-        </div>
-        <div class="row"><span class="row-label">아침 브리핑</span>
-          <select><option>오전 7:00</option><option selected>오전 8:00</option><option>오전 8:30</option></select>
+        <div class="row" style="font-size:13px;color:var(--text3);padding:10px 16px">
+          앱 실행 시 보유종목 전일 등락률을 체크해서 기준 초과 시 종목 옆에 경고 표시합니다.
         </div>
       </div>
     </div>
@@ -441,6 +434,7 @@ let cachedNews = [];
 let newsDisplayIdx = 0;
 let lastNewsEl = null;
 let macroDataStr = '';
+let alertData = {}; // 종목별 등락 데이터
 
 // ── Nav ──
 function switchScreen(name, btn) {
@@ -465,18 +459,28 @@ function toggleAccordion() {
 
 // ── Stocks ──
 function renderStocks() {
-  document.getElementById('stock-list').innerHTML = stocks.map((s,i)=>`
-    <div class="stock-row">
+  document.getElementById('stock-list').innerHTML = stocks.map((s,i)=>{
+    const alert = alertData[s.name];
+    let alertTag = '';
+    let changeStr = '';
+    if(alert && !alert.error) {
+      const dir = alert.change > 0 ? '▲' : '▼';
+      const cls = alert.change > 0 ? 'color:#FF3B30' : 'color:#007AFF';
+      changeStr = `<span style="${cls};font-size:12px;font-weight:600">${dir} ${Math.abs(alert.change)}%</span>`;
+      if(alert.alert) alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px">⚠️ 경고</span>`;
+    }
+    return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
       <div class="stock-info">
-        <div class="stock-name">${s.name}</div>
-        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원</div>
+        <div class="stock-name">${s.name} ${alertTag}</div>
+        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원 ${changeStr}</div>
       </div>
       <div class="stock-actions">
         <button class="edit-btn" onclick="openEditModal(${i})" title="수정">✏️</button>
         <button class="del-btn" onclick="removeStock(${i})" title="삭제">×</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function removeStock(i) { stocks.splice(i,1); renderStocks(); }
 function openAddModal() {
@@ -956,11 +960,30 @@ function resolveDuplicates(mode) {
   addMsg('info','ai',`✅ ${duplicates.map(s=>s.name).join(', ')} ${modeText} 완료\n최종 종목 목록을 확인해주세요.`);
 }
 
+// ── 종목 경고 체크 ──
+async function fetchStockAlert() {
+  if(stocks.length === 0) return;
+  const threshold = document.getElementById('alert-pct')?.value?.replace('±','').replace('%','') || '5';
+  try {
+    const r = await fetch('/api/stock-alert', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({stocks, threshold})
+    });
+    const data = await r.json();
+    if(Array.isArray(data)) {
+      data.forEach(d => { alertData[d.name] = d; });
+      renderStocks();
+    }
+  } catch(e) {}
+}
+
 // ── Init ──
 renderStocks();
 updateStepUI();
 fetchMacro();
 fetchNews();
+fetchStockAlert();
 </script>
 </body>
 </html>
