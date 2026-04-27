@@ -1130,8 +1130,7 @@ async function callClaude(screen, userText, isAuto=false) {
             // 종목발굴: 단계 완료 시 요약 저장
             if(screen==='discovery' && curStep>=1 && curStep<=5) {
               // 답변의 첫 3줄을 요약으로 저장
-              const lines = fullText.split('
-').filter(l=>l.trim()).slice(0,3);
+              const lines = fullText.split('\n').filter(l=>l.trim()).slice(0,3);
               stepSummaries[curStep] = lines.join(' / ').slice(0,200);
             }
 
