@@ -17,6 +17,14 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
+    const useSearch = body?.useSearch === true;
+    const claudeBody = {
+      ...body,
+      stream: true,
+      ...(useSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
+    };
+    delete claudeBody.useSearch;
+
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -25,10 +33,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'messages-2023-06-01'
       },
-      body: JSON.stringify({
-        ...body,
-        stream: true
-      })
+      body: JSON.stringify(claudeBody)
     });
 
     if (!claudeRes.ok) {

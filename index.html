@@ -621,6 +621,7 @@ let newsDisplayIdx = 0;
 let lastNewsEl = null;
 let macroDataStr = '';
 let alertData = {}; // 종목별 등락 데이터
+let stepSummaries = {}; // 단계별 요약 저장 {1:'요약', 2:'요약', ...}
 
 // ── Nav ──
 function switchScreen(name, btn) {
@@ -980,6 +981,30 @@ function getStepPrompt(step) {
 async function executeStep(step) {
   if (step<1||step>5) return;
   curStep=step; updateStepUI();
+
+  // 히스토리 압축: 이전 단계 대화를 요약으로 교체
+  if(step > 1) {
+    // 이전 단계들의 요약만 남기고 히스토리 초기화
+    const summaryContext = Object.entries(stepSummaries)
+      .filter(([k])=>parseInt(k)<step)
+      .map(([k,v])=>`[${k}단계 결과] ${v}`)
+      .join('
+');
+
+    // 히스토리를 요약 컨텍스트로 리셋
+    histories.discovery = summaryContext ? [
+      {role:'user', content: `이전 단계 요약:
+${summaryContext}
+
+위 내용을 바탕으로 계속합니다.`},
+      {role:'assistant', content: '이전 분석 내용을 확인했습니다. 계속하겠습니다.'}
+    ] : [];
+  } else {
+    // 1단계 시작 시 히스토리 초기화
+    histories.discovery = [];
+    stepSummaries = {};
+  }
+
   addMsg('discovery','step-badge',`📍 ${step}단계 · ${STEP_LABELS[step]}`);
   await callClaude('discovery', getStepPrompt(step), true);
 }
@@ -1063,7 +1088,7 @@ async function callClaude(screen, userText, isAuto=false) {
     const apiEndpoint = model === 'claude' ? '/api/chat-claude' : API;
     const res=await fetch(apiEndpoint,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen]})
+      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen],useSearch:screen==='discovery'})
     });
     if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'서버 오류');}
     removeTyping(screen);
@@ -1105,6 +1130,20 @@ async function callClaude(screen, userText, isAuto=false) {
           if(p.done){
             if(tokens[screen]) updateTok(screen,p.inputTokens||0,p.outputTokens||0);
             histories[screen].push({role:'assistant',content:fullText});
+
+            // 종목발굴: 단계 완료 시 요약 저장
+            if(screen==='discovery' && curStep>=1 && curStep<=5) {
+              // 답변의 첫 3줄을 요약으로 저장
+              const lines = fullText.split('
+').filter(l=>l.trim()).slice(0,3);
+              stepSummaries[curStep] = lines.join(' / ').slice(0,200);
+            }
+
+            // 컨텍스트 윈도우 고정: 최근 10개 메시지만 유지
+            if(histories[screen].length > 10) {
+              const first = histories[screen][0]; // 첫 메시지 보존 (요약 컨텍스트)
+              histories[screen] = [first, ...histories[screen].slice(-9)];
+            }
             // info 화면 종목 파싱
             if(screen==='info'){
               try{
