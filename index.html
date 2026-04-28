@@ -471,13 +471,6 @@ body {
     <b>호출</b><span id="tb-calls">0</span>회
     <span class="token-cost" id="tb-cost">$0.000</span>
   </div>
-  <div class="time-tabs" id="time-tabs" style="flex-shrink:0;display:flex;gap:6px;padding:8px 12px;background:var(--bg1);border-bottom:.5px solid var(--border);overflow-x:auto">
-    <button class="tab-chip" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">🌙 프리마켓</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오전장')">☀️ 오전장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오후장')">🌤 오후장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">🌙 애프터마켓</button>
-  </div>
   <div class="chat-wrap">
     <div class="chat-area" id="chat-briefing">
     <div class="msg system">시간대 탭을 선택하면 브리핑이 시작됩니다</div>
@@ -661,7 +654,7 @@ function renderStocks() {
     if(alert && !alert.error) {
       // 전일대비 등락률
       const dir = alert.change > 0 ? '▲' : '▼';
-      const dayColor = alert.change > 0 ? 'color:#FF3B30' : 'color:#34C759';
+      const dayColor = alert.change > 0 ? 'color:#FF3B30' : 'color:#007AFF';
       // 평단대비 수익률
       const pDir = alert.profitRate >= 0 ? '▲' : '▼';
       const pColor = alert.profitRate >= 0 ? 'color:#FF3B30' : 'color:#34C759';
@@ -673,9 +666,9 @@ function renderStocks() {
         const profitTarget = s.profitTarget || parseFloat(localStorage.getItem('alert-bulk-profit')) || null;
         const lossLimit    = s.lossLimit    || parseFloat(localStorage.getItem('alert-bulk-loss'))   || null;
         if(profitTarget && alert.profitRate >= profitTarget) {
-          alertTag = `<span style="background:#34C759;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">익절</span>`;
+          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">익절</span>`;
         } else if(lossLimit && alert.profitRate <= -lossLimit) {
-          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">손절</span>`;
+          alertTag = `<span style="background:#007AFF;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">손절</span>`;
         }
       }
     }
@@ -985,7 +978,16 @@ ${ctx}`;
 
 비교 요청 시에만 비교. 그 외엔 각 차트 독립 분석.
 인사말 금지. 바로 분석 시작.`;
-  if (screen==='discovery') return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다. 입문자가 이해하도록 단계별 분석을 쉬운 언어로 제공하세요.\n${ctx}`;
+  if (screen==='discovery') {
+    // 종목발굴은 보유종목과 무관 - 시장 전체 기준
+    const macroOnly = `[시장지표] ${macroDataStr||'로딩중'}`;
+    return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다.
+중요: 종목발굴은 사용자 보유종목과 완전히 무관하게 한국 증시 전체에서 분석합니다.
+보유종목을 언급하거나 참고하지 마세요.
+인사말 금지. 마크다운 금지. 바로 핵심부터.
+${macroOnly}`;
+  }
+  if (screen==='discovery_old') return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다. 입문자가 이해하도록 단계별 분석을 쉬운 언어로 제공하세요.\n${ctx}`;
   return base;
 }
 
@@ -1007,7 +1009,7 @@ function getStepPrompt(step) {
 규칙: 마크다운 금지. 인사말/서두 금지. 목록만. 설명 문장 금지.
 형식(이것만):
 섹터: 종목명 — 저평가수준(상/중/하) — 이유 한줄
-(6~8개, 투기성 소형주 제외, 보유종목 ${snames} 해당시 ★)`,
+(6~8개, 투기성 소형주 제외)`,
 
     3:`[3단계] 저평가 원인 분석
 규칙: 마크다운 금지. 인사말/서두 금지. 목록만. 설명 문장 금지.
