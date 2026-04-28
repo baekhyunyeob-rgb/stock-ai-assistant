@@ -679,11 +679,14 @@ function renderStocks() {
         }
       }
     }
+    const priceStr = (alert && !alert.error && alert.lastClose)
+      ? `<span style="font-size:11px;color:var(--text3)">전일</span> <span style="font-size:13px;font-weight:600;color:var(--text)">${alert.lastClose.toLocaleString()}원</span> `
+      : '';
     return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
       <div class="stock-info">
-        <div class="stock-name">${s.name} ${alertTag}</div>
-        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원 ${changeStr}</div>
+        <div class="stock-name">${s.name} ${priceStr}${changeStr} ${alertTag}</div>
+        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원</div>
       </div>
       <div class="stock-actions">
         <button class="edit-btn" onclick="openEditModal(${i})" title="수정">✏️</button>
