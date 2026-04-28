@@ -672,23 +672,11 @@ function renderStocks() {
         }
       }
     }
-    // 한국 장 시간 판단 (오전 9시 ~ 오후 3시 30분)
-    const now = new Date();
-    const kst = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
-    const kstHour = kst.getUTCHours();
-    const kstMin = kst.getUTCMinutes();
-    const kstDay = kst.getUTCDay(); // 0=일, 6=토
-    const isMarketOpen = kstDay >= 1 && kstDay <= 5 &&
-      ((kstHour === 9 && kstMin >= 0) || (kstHour > 9 && kstHour < 15) ||
-       (kstHour === 15 && kstMin <= 30));
-    const priceLabel = isMarketOpen ? '현재' : '종가';
-    const priceStr = (alert && !alert.error && alert.lastClose)
-      ? `<span style="font-size:11px;color:var(--text3)">${priceLabel}</span> <span style="font-size:13px;font-weight:600;color:var(--text)">${alert.lastClose.toLocaleString()}원</span> `
-      : '';
+
     return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
       <div class="stock-info">
-        <div class="stock-name">${s.name} ${priceStr}${changeStr}</div>
+        <div class="stock-name">${s.name}</div>
         <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원 ${alertTag}</div>
       </div>
       <div class="stock-actions">
