@@ -1357,25 +1357,19 @@ function showStockInfo(idx) {
       lines.push('<span style="color:' + pColor + ';font-weight:700">' + pDir + ' ' + Math.abs(a.profitRate).toFixed(1) + '% 수익률</span>');
     }
 
-    // 추세
-    if(a.trendSummary) {
-      const tc = a.trendSummary.includes('상승') && !a.trendSummary.includes('하락') ? '#FF3B30'
-               : a.trendSummary.includes('하락') && !a.trendSummary.includes('상승') ? '#007AFF'
-               : '#FF9500';
-      lines.push('<span style="color:' + tc + '">' + a.trendSummary + '</span>');
-    }
-
-    // 어깨/무릎 신호
-    if(a.position === 'shoulder') {
-      lines.push('<span style="color:#FF3B30;font-weight:700">⚠️ 어깨 신호 (고점 ' + a.fromHigh60 + '%)</span>');
-    } else if(a.position === 'knee') {
-      lines.push('<span style="color:#007AFF;font-weight:700">✅ 무릎 신호 (저점 +' + a.fromLow60 + '%)</span>');
-    } else if(a.position === 'high') {
-      lines.push('<span style="color:#FF9500">60일 고점 근처 (' + a.fromHigh60 + '%)</span>');
-    } else if(a.position === 'low') {
-      lines.push('<span style="color:var(--text3)">60일 저점 근처 (+' + a.fromLow60 + '%)</span>');
-    } else {
-      lines.push('<span style="color:var(--text3)">60일 고점 ' + a.fromHigh60 + '% / 저점 +' + a.fromLow60 + '%</span>');
+    // 추세 변화 스토리
+    if(a.story) {
+      const sc = a.signal === 'shoulder' ? '#FF3B30'
+               : a.signal === 'knee'     ? '#007AFF'
+               : a.signal === 'up'       ? '#FF3B30'
+               : a.signal === 'down'     ? '#007AFF'
+               : a.signal === 'caution'  ? '#FF9500'
+               : 'var(--text3)';
+      const prefix = a.signal === 'shoulder' ? '⚠️ '
+                   : a.signal === 'knee'     ? '✅ '
+                   : a.signal === 'caution'  ? '⚡ '
+                   : '';
+      lines.push('<span style="color:' + sc + ';font-weight:' + (a.signal==='shoulder'||a.signal==='knee'?'700':'400') + '">' + prefix + a.story + '</span>');
     }
 
     // 급등락
