@@ -39,77 +39,86 @@ function trendDir(slope, basePrice) {
 
 // 추세 변화 스토리 생성
 function buildStory(t60, t20, t5, position, spikeInfo, fromHigh60, fromLow60) {
-  const isRecentSpike = spikeInfo !== null;
-  const isRecentUp = spikeInfo && spikeInfo.includes('급등');
+  const isRecentUp   = spikeInfo && spikeInfo.includes('급등');
   const isRecentDown = spikeInfo && spikeInfo.includes('급락');
+  const nearHigh = fromHigh60 >= -10; // 고점 -10% 이내
+  const nearLow  = fromLow60  <=  10; // 저점 +10% 이내
 
-  // 급등/급락 후 패턴
-  if (isRecentUp && (position === 'high' || position === 'shoulder')) {
-    return { story: '급등 후 고점 정체 → 어깨 주의', signal: 'shoulder' };
-  }
-  if (isRecentDown && (position === 'low' || position === 'knee')) {
-    return { story: '급락 후 저점 정체 → 무릎 주의', signal: 'knee' };
-  }
-  if (isRecentUp && t5 === 'flat') {
+  // ── 1순위: 급등/급락 + 위치 조합 ──
+  if (isRecentUp && nearHigh)
+    return { story: '급등 후 고점 도달 → 어깨 주의', signal: 'shoulder' };
+  if (isRecentDown && nearLow)
+    return { story: '급락 후 저점 도달 → 무릎 주의', signal: 'knee' };
+  if (isRecentUp && !nearHigh)
     return { story: '급등 후 숨고르기 중', signal: 'caution' };
-  }
-  if (isRecentDown && t5 === 'flat') {
+  if (isRecentDown && !nearLow)
     return { story: '급락 후 반발 매수 관망', signal: 'watch' };
-  }
 
-  // 어깨 신호: 장기/중기 상승 → 단기 하락 + 고점 근처
-  if (t60 === 'up' && t20 === 'up' && t5 === 'down' && (position === 'high' || position === 'shoulder')) {
+  // ── 2순위: 고점/저점 위치 우선 체크 ──
+
+  // 상승 중 고점 근처 → 어깨
+  if (nearHigh && t60 === 'up' && t20 === 'up' && t5 === 'up')
+    return { story: '상승 지속 중 고점 근처 — 어깨 주의', signal: 'shoulder' };
+  if (nearHigh && t60 === 'up' && t20 === 'up' && t5 === 'down')
     return { story: '상승 후 고점 근처 하락 시작 → 어깨 신호', signal: 'shoulder' };
-  }
-  if (t60 === 'up' && t20 === 'down' && t5 === 'down' && position === 'shoulder') {
+  if (nearHigh && t60 === 'up' && t20 === 'down' && t5 === 'down')
     return { story: '고점 이후 하락 전환 → 어깨 확인', signal: 'shoulder' };
-  }
+  if (nearHigh && t60 === 'up' && t20 === 'down' && t5 === 'up')
+    return { story: '고점 근처 등락 반복 — 방향 확인 필요', signal: 'caution' };
 
-  // 무릎 신호: 장기/중기 하락 → 단기 상승 + 저점 근처
-  if (t60 === 'down' && t20 === 'down' && t5 === 'up' && (position === 'low' || position === 'knee')) {
+  // 하락 중 저점 근처 → 무릎
+  if (nearLow && t60 === 'down' && t20 === 'down' && t5 === 'down')
+    return { story: '하락 지속 중 저점 근처 — 무릎 주의', signal: 'knee' };
+  if (nearLow && t60 === 'down' && t20 === 'down' && t5 === 'up')
     return { story: '하락 후 저점 근처 반등 시작 → 무릎 신호', signal: 'knee' };
-  }
-  if (t60 === 'down' && t20 === 'up' && t5 === 'up' && position === 'knee') {
+  if (nearLow && t60 === 'down' && t20 === 'up' && t5 === 'up')
     return { story: '저점 이후 상승 전환 → 무릎 확인', signal: 'knee' };
-  }
+  if (nearLow && t60 === 'down' && t20 === 'up' && t5 === 'down')
+    return { story: '저점 근처 등락 반복 — 방향 확인 필요', signal: 'watch' };
 
-  // 일반 추세 변화 패턴
-  if (t60 === 'up' && t20 === 'up' && t5 === 'up') {
+  // ── 3순위: 일반 추세 변화 ──
+
+  // 상승 패턴
+  if (t60 === 'up' && t20 === 'up' && t5 === 'up')
     return { story: '60일 꾸준한 상승 지속 중', signal: 'up' };
-  }
-  if (t60 === 'up' && t20 === 'up' && t5 === 'down') {
+  if (t60 === 'up' && t20 === 'up' && t5 === 'down')
     return { story: '상승 추세 중 단기 조정', signal: 'caution' };
-  }
-  if (t60 === 'up' && t20 === 'up' && t5 === 'flat') {
+  if (t60 === 'up' && t20 === 'up' && t5 === 'flat')
     return { story: '상승 추세 중 단기 숨고르기', signal: 'neutral' };
-  }
-  if (t60 === 'up' && t20 === 'down' && t5 === 'down') {
+  if (t60 === 'up' && t20 === 'down' && t5 === 'down')
     return { story: '상승 후 중기 하락 전환', signal: 'shoulder' };
-  }
-  if (t60 === 'up' && t20 === 'down' && t5 === 'up') {
+  if (t60 === 'up' && t20 === 'down' && t5 === 'up')
     return { story: '상승 후 조정 중 단기 반등', signal: 'watch' };
-  }
-  if (t60 === 'up' && t20 === 'flat' && t5 === 'down') {
+  if (t60 === 'up' && t20 === 'flat' && t5 === 'down')
     return { story: '상승 후 횡보, 단기 하락 조짐', signal: 'caution' };
-  }
-  if (t60 === 'down' && t20 === 'down' && t5 === 'down') {
+  if (t60 === 'up' && t20 === 'flat' && t5 === 'up')
+    return { story: '상승 후 횡보, 재상승 시도', signal: 'watch' };
+
+  // 하락 패턴
+  if (t60 === 'down' && t20 === 'down' && t5 === 'down')
     return { story: '60일 지속 하락 중', signal: 'down' };
-  }
-  if (t60 === 'down' && t20 === 'down' && t5 === 'up') {
+  if (t60 === 'down' && t20 === 'down' && t5 === 'up')
     return { story: '하락 중 단기 반등 시도', signal: 'watch' };
-  }
-  if (t60 === 'down' && t20 === 'up' && t5 === 'up') {
-    return { story: '하락 후 반등 전환 시도 중', signal: 'knee' };
-  }
-  if (t60 === 'down' && t20 === 'up' && t5 === 'down') {
-    return { story: '하락 후 단기 반등 꺾임', signal: 'caution' };
-  }
-  if (t60 === 'flat' && t20 === 'up' && t5 === 'up') {
+  if (t60 === 'down' && t20 === 'down' && t5 === 'flat')
+    return { story: '하락 중 단기 멈춤', signal: 'watch' };
+  if (t60 === 'down' && t20 === 'up' && t5 === 'up')
+    return { story: '하락 후 중기 반등 전환', signal: 'knee' };
+  if (t60 === 'down' && t20 === 'up' && t5 === 'down')
+    return { story: '하락 후 반등 중 단기 조정', signal: 'watch' };
+  if (t60 === 'down' && t20 === 'flat' && t5 === 'up')
+    return { story: '하락 후 횡보, 재반등 시도', signal: 'watch' };
+  if (t60 === 'down' && t20 === 'flat' && t5 === 'down')
+    return { story: '하락 후 횡보, 재하락 조짐', signal: 'caution' };
+
+  // 횡보 패턴
+  if (t60 === 'flat' && t20 === 'up' && t5 === 'up')
     return { story: '횡보 중 상승 시도', signal: 'watch' };
-  }
-  if (t60 === 'flat' && t20 === 'down' && t5 === 'down') {
+  if (t60 === 'flat' && t20 === 'down' && t5 === 'down')
     return { story: '횡보 중 하락 시도', signal: 'caution' };
-  }
+  if (t60 === 'flat' && t20 === 'up' && t5 === 'down')
+    return { story: '횡보 중 단기 등락 반복', signal: 'neutral' };
+  if (t60 === 'flat' && t20 === 'down' && t5 === 'up')
+    return { story: '횡보 중 단기 반등', signal: 'neutral' };
 
   return { story: '방향성 없는 횡보', signal: 'neutral' };
 }
