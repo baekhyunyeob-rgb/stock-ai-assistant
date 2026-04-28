@@ -674,7 +674,10 @@ function renderStocks() {
     }
 
     return `<div class="stock-row">
-      <div class="stock-icon">${s.name[0]}</div>
+      <div class="stock-icon" 
+        onmousedown="showStockInfo(${i})" onmouseup="hideStockInfo()" onmouseleave="hideStockInfo()"
+        ontouchstart="showStockInfo(${i})" ontouchend="hideStockInfo()" ontouchcancel="hideStockInfo()"
+        style="cursor:pointer;user-select:none">${s.name[0]}</div>
       <div class="stock-info">
         <div class="stock-name">${s.name}</div>
         <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원 ${alertTag}</div>
@@ -1353,7 +1356,7 @@ function removeImg(screen,i){
 // ── 종목 정보 팝업 ──
 let infoTimer = null;
 
-function showStockInfo(idx, el) {
+function showStockInfo(idx) {
   infoTimer = setTimeout(() => {
     const s = stocks[idx];
     const a = alertData[s.name];
