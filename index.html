@@ -685,8 +685,8 @@ function renderStocks() {
     return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
       <div class="stock-info">
-        <div class="stock-name">${s.name} ${priceStr}${changeStr} ${alertTag}</div>
-        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원</div>
+        <div class="stock-name">${s.name} ${priceStr}${changeStr}</div>
+        <div class="stock-detail">${s.qty.toLocaleString()}주 · 평단 ${s.avg.toLocaleString()}원 ${alertTag}</div>
       </div>
       <div class="stock-actions">
         <button class="edit-btn" onclick="openEditModal(${i})" title="수정">✏️</button>
@@ -1466,11 +1466,7 @@ async function fetchStockAlert() {
 }
 
 // ── 모바일 뒤로가기 처리 ──
-// 모바일 뒤로가기 처리
-history.pushState(null, '', location.href);
-window.addEventListener('popstate', function() {
-  history.pushState(null, '', location.href);
-});
+// 모바일 뒤로가기 — 브라우저 기본 동작 유지
 
 // ── Init ──
 renderStocks();
