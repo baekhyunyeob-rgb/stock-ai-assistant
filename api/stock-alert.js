@@ -8,10 +8,34 @@ function loadStockMap() {
     const map = {};
     for (const line of lines) {
       const [corp_name, stock_code, corp_code] = line.split(',');
-      if (corp_name && stock_code) map[corp_name.trim()] = { stock_code: stock_code?.trim(), corp_code: corp_code?.trim() };
+      if (corp_name && stock_code) {
+        map[corp_name.trim()] = { stock_code: stock_code?.trim(), corp_code: corp_code?.trim() };
+      }
     }
     return map;
   } catch(e) { return {}; }
+}
+
+// 선형 회귀 기울기
+function linearSlope(arr) {
+  const n = arr.length;
+  if (n < 2) return 0;
+  const meanX = (n - 1) / 2;
+  const meanY = arr.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - meanX) * (arr[i] - meanY);
+    den += (i - meanX) ** 2;
+  }
+  return den === 0 ? 0 : num / den;
+}
+
+// 추세 방향
+function trendDir(slope, basePrice) {
+  const pct = (slope / basePrice) * 100;
+  if (pct > 0.15) return 'up';
+  if (pct < -0.15) return 'down';
+  return 'flat';
 }
 
 export default async function handler(req, res) {
@@ -39,7 +63,7 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // 3개월 데이터 요청 (60일 고점/저점 계산용)
+      // 3개월 데이터
       const tryFetch = async (symbol) => {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
         const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
@@ -54,80 +78,93 @@ export default async function handler(req, res) {
       }
 
       const result = data.chart.result[0];
-      const meta = result.meta;
-      const allCloses = result.indicators?.quote?.[0]?.close || [];
-      const allVolumes = result.indicators?.quote?.[0]?.volume || [];
-      const closes = allCloses.filter(c => c !== null);
-      const volumes = allVolumes.filter(v => v !== null);
+      const closes  = (result.indicators?.quote?.[0]?.close  || []).filter(c => c != null);
+      const volumes = (result.indicators?.quote?.[0]?.volume || []).filter(v => v != null);
 
-      if (closes.length < 5) {
+      if (closes.length < 10) {
         results.push({ name: stock.name, stockCode, error: '데이터 부족' });
         continue;
       }
 
       const lastClose = closes[closes.length - 1];
       const prevClose = closes[closes.length - 2];
-
-      // 전일대비 등락률
       const change = ((lastClose - prevClose) / prevClose) * 100;
-
-      // 평단가 대비 수익률
       const profitRate = stock.avg ? ((lastClose - stock.avg) / stock.avg) * 100 : null;
 
-      // 20일 추세
-      const trend20 = closes.slice(-20);
-      let trend = '횡보';
-      if (trend20.length >= 5) {
-        const half = Math.floor(trend20.length / 2);
-        const firstHalf = trend20.slice(0, half).reduce((a,b)=>a+b,0) / half;
-        const secondHalf = trend20.slice(half).reduce((a,b)=>a+b,0) / (trend20.length - half);
-        const diff = (secondHalf - firstHalf) / firstHalf * 100;
-        if (diff > 3) trend = '상승';
-        else if (diff < -3) trend = '하락';
-      }
+      // ── 선형 회귀 추세 ──
+      const baseP = closes[Math.max(0, closes.length - 10)];
+      const t60 = trendDir(linearSlope(closes),           baseP);
+      const t20 = trendDir(linearSlope(closes.slice(-20)), baseP);
+      const t5  = trendDir(linearSlope(closes.slice(-5)),  baseP);
 
-      // 급등락 (3개월 중 ±5% 이상 단일 일봉)
-      let hasSpike = false;
-      for (let i = 1; i < closes.length; i++) {
-        if (Math.abs((closes[i] - closes[i-1]) / closes[i-1] * 100) >= 5) {
-          hasSpike = true; break;
+      let trendSummary;
+      if      (t60==='up'   && t20==='up'   && t5==='up')   trendSummary = '지속 상승';
+      else if (t60==='up'   && t20==='up'   && t5==='down') trendSummary = '상승 중 단기 조정';
+      else if (t60==='up'   && t20==='down' && t5==='down') trendSummary = '상승 후 하락 전환';
+      else if (t60==='up'   && t20==='down' && t5==='up')   trendSummary = '하락 중 단기 반등';
+      else if (t60==='down' && t20==='down' && t5==='down') trendSummary = '지속 하락';
+      else if (t60==='down' && t20==='down' && t5==='up')   trendSummary = '하락 중 단기 반등';
+      else if (t60==='down' && t20==='up'   && t5==='up')   trendSummary = '하락 후 상승 전환';
+      else if (t60==='down' && t20==='up'   && t5==='down') trendSummary = '하락 후 단기 상승';
+      else trendSummary = '횡보';
+
+      // ── 60일 고점/저점 ──
+      const closes60 = closes.slice(-60);
+      const high60 = Math.max(...closes60);
+      const low60  = Math.min(...closes60);
+      const fromHigh60 = ((lastClose - high60) / high60) * 100;
+      const fromLow60  = ((lastClose - low60)  / low60)  * 100;
+
+      // ── 어깨/무릎 신호 ──
+      let position = null;
+      if      (fromHigh60 >= -15 && t20 === 'down' && t5 === 'down') position = 'shoulder';
+      else if (fromLow60  <=  15 && t20 === 'up'   && t5 === 'up')   position = 'knee';
+      else if (fromHigh60 >= -15) position = 'high';
+      else if (fromLow60  <=  20) position = 'low';
+
+      // ── 급등락 — 최근 5일 내 ±5% 이상 ──
+      let spikeInfo = null;
+      const recent5 = closes.slice(-6); // 최근 6개로 5일간 변동 계산
+      for (let i = recent5.length - 1; i >= 1; i--) {
+        const dayChg = (recent5[i] - recent5[i-1]) / recent5[i-1] * 100;
+        if (Math.abs(dayChg) >= 5) {
+          const daysAgo = recent5.length - 1 - i;
+          const label = daysAgo === 0 ? '오늘' : daysAgo === 1 ? '어제' : `${daysAgo}일전`;
+          const dir = dayChg > 0 ? '▲' : '▼';
+          spikeInfo = `${label} ${dir}${Math.abs(dayChg).toFixed(1)}% ${dayChg > 0 ? '급등' : '급락'}`;
+          break;
         }
       }
 
-      // 60일 고점/저점
-      const closes60 = closes.slice(-60);
-      const high60 = Math.max(...closes60);
-      const low60 = Math.min(...closes60);
-      const fromHigh60 = ((lastClose - high60) / high60) * 100;
-      const fromLow60 = ((lastClose - low60) / low60) * 100;
-
-      // 어깨/무릎 신호
-      // 어깨: 60일 고점 대비 -10% 이내 + 20일 하락 추세
-      // 무릎: 60일 저점 대비 +10% 이내 + 20일 상승 추세
-      let position = null;
-      if (fromHigh60 >= -10 && trend === '하락') position = 'shoulder'; // 어깨
-      else if (fromLow60 <= 10 && trend === '상승') position = 'knee';   // 무릎
-      else if (fromHigh60 >= -15) position = 'high';   // 고점 근처
-      else if (fromLow60 <= 20) position = 'low';      // 저점 근처
-
-      // 거래량 급증 (최근 거래량 vs 평균 2배 이상)
-      let volumeSpike = false;
-      if (volumes.length >= 5) {
-        const avgVol = volumes.slice(0, -1).reduce((a,b)=>a+b,0) / (volumes.length - 1);
-        if (volumes[volumes.length - 1] > avgVol * 2) volumeSpike = true;
+      // ── 거래량 급증 ──
+      let volumeInfo = null;
+      if (volumes.length >= 10) {
+        const avgVol = volumes.slice(0, -1).reduce((a,b) => a+b, 0) / (volumes.length - 1);
+        const lastVol = volumes[volumes.length - 1];
+        const ratio = lastVol / avgVol;
+        if (ratio >= 2) {
+          volumeInfo = `60일 평균 ${ratio.toFixed(1)}배`;
+        }
       }
 
-      // 최근 공시 (DART 7일)
-      let hasDart = false;
+      // ── DART 최근 공시 ──
+      let dartTitle = null;
+      let dartUrl = null;
       if (dartKey && info?.corp_code) {
         try {
-          const dr = await fetch(`https://opendart.fss.or.kr/api/list.json?crtfc_key=${dartKey}&corp_code=${info.corp_code}&bgn_de=${bgnDe}&page_count=1`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+          const dr = await fetch(
+            `https://opendart.fss.or.kr/api/list.json?crtfc_key=${dartKey}&corp_code=${info.corp_code}&bgn_de=${bgnDe}&page_count=1`,
+            { headers: { 'User-Agent': 'Mozilla/5.0' } }
+          );
           const dd = await dr.json();
-          if (dd.list?.length > 0) hasDart = true;
+          if (dd.list?.length > 0) {
+            dartTitle = dd.list[0].report_nm.trim();
+            dartUrl = `https://dart.fss.or.kr/dsaf001/main.do?rcept_no=${dd.list[0].rcept_no}`;
+          }
         } catch(e) {}
       }
 
-      // 손익 알림
+      // ── 손익 알림 ──
       let alertType = null;
       if (profitRate !== null) {
         if (stock.profitTarget && profitRate >= stock.profitTarget) alertType = 'profit';
@@ -140,13 +177,15 @@ export default async function handler(req, res) {
         lastClose: Math.round(lastClose),
         change: parseFloat(change.toFixed(2)),
         profitRate: profitRate !== null ? parseFloat(profitRate.toFixed(2)) : null,
-        trend,
-        hasSpike,
+        trendSummary,
+        t60, t20, t5,
         fromHigh60: parseFloat(fromHigh60.toFixed(1)),
-        fromLow60: parseFloat(fromLow60.toFixed(1)),
-        position,  // shoulder/knee/high/low/null
-        volumeSpike,
-        hasDart,
+        fromLow60:  parseFloat(fromLow60.toFixed(1)),
+        position,
+        spikeInfo,
+        volumeInfo,
+        dartTitle,
+        dartUrl,
         alertType,
         alert: Math.abs(change) >= pct
       });

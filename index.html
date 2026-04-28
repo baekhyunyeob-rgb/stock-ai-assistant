@@ -648,29 +648,12 @@ function toggleAccordion() {
 function renderStocks() {
   localStorage.setItem('stocks', JSON.stringify(stocks));
   document.getElementById('stock-list').innerHTML = stocks.map((s,i)=>{
-    const alert = alertData[s.name];
+    const a = alertData[s.name];
     let alertTag = '';
-    let changeStr = '';
-    if(alert && !alert.error) {
-      // 전일대비 등락률
-      const dir = alert.change > 0 ? '▲' : '▼';
-      const dayColor = alert.change > 0 ? 'color:#FF3B30' : 'color:#007AFF';
-      // 평단대비 수익률
-      const pDir = alert.profitRate >= 0 ? '▲' : '▼';
-      const pColor = alert.profitRate >= 0 ? 'color:#FF3B30' : 'color:#34C759';
-      changeStr = `<span style="${dayColor};font-size:11px;font-weight:600">${dir}${Math.abs(alert.change)}%</span>`;
-
-      // 손익 기준 체크
-      const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
-      if(alertEnabled && alert.profitRate !== undefined) {
-        const profitTarget = s.profitTarget || parseFloat(localStorage.getItem('alert-bulk-profit')) || null;
-        const lossLimit    = s.lossLimit    || parseFloat(localStorage.getItem('alert-bulk-loss'))   || null;
-        if(profitTarget && alert.profitRate >= profitTarget) {
-          alertTag = `<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">익절</span>`;
-        } else if(lossLimit && alert.profitRate <= -lossLimit) {
-          alertTag = `<span style="background:#007AFF;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">손절</span>`;
-        }
-      }
+    const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
+    if(alertEnabled && a && !a.error && a.alertType) {
+      if(a.alertType === 'profit') alertTag = '<span style="background:#FF3B30;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">익절</span>';
+      else if(a.alertType === 'loss') alertTag = '<span style="background:#007AFF;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px">손절</span>';
     }
 
     return `<div class="stock-row">
@@ -1371,34 +1354,40 @@ function showStockInfo(idx) {
     if(a.profitRate !== null) {
       const pColor = a.profitRate >= 0 ? '#FF3B30' : '#007AFF';
       const pDir = a.profitRate >= 0 ? '▲' : '▼';
-      lines.push(`<span style="color:${pColor};font-weight:700">${pDir} ${Math.abs(a.profitRate).toFixed(1)}% 수익률</span>`);
+      lines.push('<span style="color:' + pColor + ';font-weight:700">' + pDir + ' ' + Math.abs(a.profitRate).toFixed(1) + '% 수익률</span>');
     }
 
-    // 20일 추세
-    const trendColor = a.trend==='상승' ? '#FF3B30' : a.trend==='하락' ? '#007AFF' : 'var(--text3)';
-    lines.push(`<span style="color:${trendColor}">20일 ${a.trend}</span>`);
+    // 추세
+    if(a.trendSummary) {
+      const tc = a.trendSummary.includes('상승') && !a.trendSummary.includes('하락') ? '#FF3B30'
+               : a.trendSummary.includes('하락') && !a.trendSummary.includes('상승') ? '#007AFF'
+               : '#FF9500';
+      lines.push('<span style="color:' + tc + '">' + a.trendSummary + '</span>');
+    }
 
     // 어깨/무릎 신호
     if(a.position === 'shoulder') {
-      lines.push('<span style="color:#FF3B30;font-weight:700">⚠️ 어깨 신호 — 고점 후 하락</span>');
+      lines.push('<span style="color:#FF3B30;font-weight:700">⚠️ 어깨 신호 (고점 ' + a.fromHigh60 + '%)</span>');
     } else if(a.position === 'knee') {
-      lines.push('<span style="color:#007AFF;font-weight:700">✅ 무릎 신호 — 저점 후 반등</span>');
+      lines.push('<span style="color:#007AFF;font-weight:700">✅ 무릎 신호 (저점 +' + a.fromLow60 + '%)</span>');
     } else if(a.position === 'high') {
-      lines.push('<span style="color:#FF9500">60일 고점 근처 (${a.fromHigh60}%)</span>');
+      lines.push('<span style="color:#FF9500">60일 고점 근처 (' + a.fromHigh60 + '%)</span>');
     } else if(a.position === 'low') {
-      lines.push('<span style="color:var(--text3)">60일 저점 근처 (+${a.fromLow60}%)</span>');
+      lines.push('<span style="color:var(--text3)">60일 저점 근처 (+' + a.fromLow60 + '%)</span>');
     } else {
-      lines.push(`<span style="color:var(--text3)">60일 고점 ${a.fromHigh60}%</span>`);
+      lines.push('<span style="color:var(--text3)">60일 고점 ' + a.fromHigh60 + '% / 저점 +' + a.fromLow60 + '%</span>');
     }
 
     // 급등락
-    if(a.hasSpike) lines.push('<span style="color:#FF9500">⚡ 급등락 있음 (3개월 내)</span>');
+    if(a.spikeInfo) lines.push('<span style="color:#FF9500">⚡ ' + a.spikeInfo + '</span>');
 
-    // 거래량 급증
-    if(a.volumeSpike) lines.push('<span style="color:#FF9500">📊 거래량 급증</span>');
+    // 거래량
+    if(a.volumeInfo) lines.push('<span style="color:#FF9500">📊 거래량 ' + a.volumeInfo + '</span>');
 
     // 최근 공시
-    if(a.hasDart) lines.push('<span style="color:var(--info)">📋 최근 공시 있음</span>');
+    if(a.dartTitle) {
+      lines.push('<span style="color:var(--info)">📋 ' + a.dartTitle + '</span>');
+    }
 
     const popup = document.createElement('div');
     popup.className = 'stock-popup';
