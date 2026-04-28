@@ -967,17 +967,7 @@ ${ctx}`;
     };
 
     const tg = timeGuides[curTimeTab] || timeGuides['개장 전'];
-    return base+\`
-
-현재 시간대: \${curTimeTab}
-
-\${tg}
-
-규칙:
-- 인사말·서두 금지. 바로 핵심부터.
-- 절차 설명 금지. 직접 해설.
-- 의견 직접 제시. 돌려 말하지 말 것.
-- 보유종목·공시·뉴스 데이터 적극 활용.\`;
+    return base + '\n\n현재 시간대: ' + curTimeTab + '\n\n' + tg + '\n\n규칙:\n- 인사말·서두 금지. 바로 핵심부터.\n- 절차 설명 금지. 직접 해설.\n- 의견 직접 제시. 돌려 말하지 말 것.\n- 보유종목·공시·뉴스 데이터 적극 활용.';
   }
   if (screen==='chart') return base+`
 
