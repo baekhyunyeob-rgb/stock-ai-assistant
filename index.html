@@ -1527,8 +1527,8 @@ function loadAlertSettings() {
 
 // ── 종목 경고 체크 ──
 async function fetchStockAlert() {
+  if(stocks.length === 0) return;
   const alertEnabled = localStorage.getItem('alert-enabled') === 'true';
-  if(!alertEnabled || stocks.length === 0) return;
   const threshold = '5';
   try {
     const r = await fetch('/api/stock-alert', {
