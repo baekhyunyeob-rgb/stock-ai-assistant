@@ -672,8 +672,18 @@ function renderStocks() {
         }
       }
     }
+    // 한국 장 시간 판단 (오전 9시 ~ 오후 3시 30분)
+    const now = new Date();
+    const kst = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+    const kstHour = kst.getUTCHours();
+    const kstMin = kst.getUTCMinutes();
+    const kstDay = kst.getUTCDay(); // 0=일, 6=토
+    const isMarketOpen = kstDay >= 1 && kstDay <= 5 &&
+      ((kstHour === 9 && kstMin >= 0) || (kstHour > 9 && kstHour < 15) ||
+       (kstHour === 15 && kstMin <= 30));
+    const priceLabel = isMarketOpen ? '현재' : '종가';
     const priceStr = (alert && !alert.error && alert.lastClose)
-      ? `<span style="font-size:11px;color:var(--text3)">전일</span> <span style="font-size:13px;font-weight:600;color:var(--text)">${alert.lastClose.toLocaleString()}원</span> `
+      ? `<span style="font-size:11px;color:var(--text3)">${priceLabel}</span> <span style="font-size:13px;font-weight:600;color:var(--text)">${alert.lastClose.toLocaleString()}원</span> `
       : '';
     return `<div class="stock-row">
       <div class="stock-icon">${s.name[0]}</div>
@@ -1350,6 +1360,82 @@ function removeImg(screen,i){
     wrap.innerHTML=`<img class="img-thumb" src="data:${img.type};base64,${img.data}"><button class="img-remove" onclick="removeImg('${screen}',${j})">×</button>`;
     prev.appendChild(wrap);
   });
+}
+
+// ── 종목 정보 팝업 ──
+let infoTimer = null;
+
+function showStockInfo(idx, el) {
+  infoTimer = setTimeout(() => {
+    const s = stocks[idx];
+    const a = alertData[s.name];
+    if(!a || a.error) return;
+
+    // 기존 팝업 제거
+    document.querySelectorAll('.stock-popup').forEach(p=>p.remove());
+
+    const lines = [];
+
+    // 수익률
+    if(a.profitRate !== null) {
+      const pColor = a.profitRate >= 0 ? '#FF3B30' : '#007AFF';
+      const pDir = a.profitRate >= 0 ? '▲' : '▼';
+      lines.push(`<span style="color:${pColor};font-weight:700">${pDir} ${Math.abs(a.profitRate).toFixed(1)}% 수익률</span>`);
+    }
+
+    // 20일 추세
+    const trendColor = a.trend==='상승' ? '#FF3B30' : a.trend==='하락' ? '#007AFF' : 'var(--text3)';
+    lines.push(`<span style="color:${trendColor}">20일 ${a.trend}</span>`);
+
+    // 어깨/무릎 신호
+    if(a.position === 'shoulder') {
+      lines.push('<span style="color:#FF3B30;font-weight:700">⚠️ 어깨 신호 — 고점 후 하락</span>');
+    } else if(a.position === 'knee') {
+      lines.push('<span style="color:#007AFF;font-weight:700">✅ 무릎 신호 — 저점 후 반등</span>');
+    } else if(a.position === 'high') {
+      lines.push('<span style="color:#FF9500">60일 고점 근처 (${a.fromHigh60}%)</span>');
+    } else if(a.position === 'low') {
+      lines.push('<span style="color:var(--text3)">60일 저점 근처 (+${a.fromLow60}%)</span>');
+    } else {
+      lines.push(`<span style="color:var(--text3)">60일 고점 ${a.fromHigh60}%</span>`);
+    }
+
+    // 급등락
+    if(a.hasSpike) lines.push('<span style="color:#FF9500">⚡ 급등락 있음 (3개월 내)</span>');
+
+    // 거래량 급증
+    if(a.volumeSpike) lines.push('<span style="color:#FF9500">📊 거래량 급증</span>');
+
+    // 최근 공시
+    if(a.hasDart) lines.push('<span style="color:var(--info)">📋 최근 공시 있음</span>');
+
+    const popup = document.createElement('div');
+    popup.className = 'stock-popup';
+    popup.style.cssText = `
+      position:fixed;
+      top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      background:var(--bg1);
+      border-radius:16px;
+      padding:16px 20px;
+      box-shadow:0 8px 32px rgba(0,0,0,.25);
+      z-index:999;
+      min-width:200px;
+      border:.5px solid var(--border);
+    `;
+    popup.innerHTML = `
+      <div style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text)">${s.name}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        ${lines.join('')}
+      </div>
+    `;
+    document.body.appendChild(popup);
+  }, 300);
+}
+
+function hideStockInfo() {
+  clearTimeout(infoTimer);
+  document.querySelectorAll('.stock-popup').forEach(p=>p.remove());
 }
 
 // ── 중복 종목 처리 ──
