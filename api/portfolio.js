@@ -9,10 +9,12 @@ export default async function handler(req, res) {
   const { stocks } = req.body || {};
 
   const tryFetch = async (symbol) => {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const d = await r.json();
-    return d?.chart?.result?.[0];
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const d = await r.json();
+      return d?.chart?.result?.[0];
+    } catch(e) { return null; }
   };
 
   let stockMap = {};
@@ -25,34 +27,43 @@ export default async function handler(req, res) {
   } catch(e) {}
 
   try {
-    // 1. 코스피, 코스닥 지수
-    const [ksResult, kqResult] = await Promise.all([
-      tryFetch('^KS11'),
-      tryFetch('^KQ11')
-    ]);
+    // 1. 코스피 기준 날짜 확보
+    const ksResult = await tryFetch('^KS11');
+    if (!ksResult) return res.status(500).json({ error: '코스피 데이터 없음' });
 
-    const ksCloses = (ksResult?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
-    const kqCloses = (kqResult?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
     const ksDates = (ksResult?.timestamp || []).map(t => {
       const d = new Date(t * 1000);
-      return (d.getMonth()+1) + '/' + d.getDate();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     });
-    const ksRawDates = (ksResult?.timestamp || []).map(t => {
-      const d = new Date(t * 1000);
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      return d.getFullYear() + '-' + mm + '-' + dd;
-    });
+    const ksCloses = (ksResult?.indicators?.quote?.[0]?.close || []);
 
-    // 최근 60일만
+    // 코스피 날짜-가격 맵
+    const ksPriceMap = {};
+    ksDates.forEach((date, i) => { if(ksCloses[i] != null) ksPriceMap[date] = ksCloses[i]; });
+
+    // 최근 60 거래일 기준 날짜 목록
     const days = 60;
-    const ks60 = ksCloses.slice(-days);
-    const kq60 = kqCloses.slice(-days);
-    const dates = ksDates.slice(-days);
+    const baseDates = ksDates.filter(d => ksPriceMap[d] != null).slice(-days);
+    const N = baseDates.length;
 
-    // 2. 보유종목 총액 (종목별 주가 × 수량)
-    const portfolioMap = {}; // date index → 총액
+    // 2. 코스닥 - baseDates 기준으로 맞추기
+    const kqResult = await tryFetch('^KQ11');
+    const kqDates = (kqResult?.timestamp || []).map(t => {
+      const d = new Date(t * 1000);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    });
+    const kqCloses = (kqResult?.indicators?.quote?.[0]?.close || []);
+    const kqPriceMap = {};
+    kqDates.forEach((date, i) => { if(kqCloses[i] != null) kqPriceMap[date] = kqCloses[i]; });
 
+    // baseDates 기준으로 배열 생성 (없는 날은 null)
+    const alignTo = (priceMap) => baseDates.map(d => priceMap[d] ?? null);
+
+    const kospi60  = alignTo(ksPriceMap);
+    const kosdaq60 = alignTo(kqPriceMap);
+
+    // 3. 보유종목 총액
+    const portfolioMap = {};
     for (const stock of (stocks || [])) {
       const code = stock.stockCode || stockMap[stock.name];
       if (!stock.qty || !code) continue;
@@ -61,27 +72,24 @@ export default async function handler(req, res) {
         if (!result) result = await tryFetch(`${code}.KQ`);
         if (!result) continue;
 
-        const closes = (result?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
-        const sc60 = closes.slice(-days);
+        const stDates = (result?.timestamp || []).map(t => {
+          const d = new Date(t * 1000);
+          return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        });
+        const stCloses = (result?.indicators?.quote?.[0]?.close || []);
+        const stMap = {};
+        stDates.forEach((date, i) => { if(stCloses[i] != null) stMap[date] = stCloses[i]; });
 
-        sc60.forEach((price, i) => {
-          if (!portfolioMap[i]) portfolioMap[i] = 0;
-          portfolioMap[i] += price * stock.qty;
+        baseDates.forEach((date, i) => {
+          const price = stMap[date];
+          if(price != null) portfolioMap[i] = (portfolioMap[i] || 0) + price * stock.qty;
         });
       } catch(e) {}
     }
 
-    // 총액 배열
-    const portfolio60 = Array.from({ length: ks60.length }, (_, i) => portfolioMap[i] || null);
+    const portfolio60 = baseDates.map((_, i) => portfolioMap[i] ?? null);
 
-    // 3. 시작점 100으로 정규화
-    const normalize = (arr) => {
-      const first = arr.find(v => v != null);
-      if (!first) return arr;
-      return arr.map(v => v != null ? parseFloat((v / first * 100).toFixed(2)) : null);
-    };
-
-    // 개별 종목 데이터도 반환
+    // 4. 개별 종목 데이터
     const individual = {};
     for (const stock of (stocks || [])) {
       const code = stock.stockCode || stockMap[stock.name];
@@ -90,19 +98,28 @@ export default async function handler(req, res) {
         let r = await tryFetch(`${code}.KS`);
         if (!r) r = await tryFetch(`${code}.KQ`);
         if (!r) continue;
-        const sc = (r?.indicators?.quote?.[0]?.close || []).filter(c => c != null).slice(-days);
-        individual[stock.name] = normalize(sc);
+
+        const stDates = (r?.timestamp || []).map(t => {
+          const d = new Date(t * 1000);
+          return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        });
+        const stCloses = (r?.indicators?.quote?.[0]?.close || []);
+        const stMap = {};
+        stDates.forEach((date, i) => { if(stCloses[i] != null) stMap[date] = stCloses[i]; });
+
+        individual[stock.name] = baseDates.map(d => stMap[d] ?? null);
       } catch(e) {}
     }
 
-    const rawDates = ksRawDates.slice(-days);
+    // 5. 표시용 날짜 (MM/DD)
+    const dates = baseDates.map(d => d.slice(5).replace('-', '/'));
 
     return res.status(200).json({
       dates,
-      rawDates,
-      kospi:     normalize(ks60),
-      kosdaq:    normalize(kq60),
-      portfolio: normalize(portfolio60),
+      rawDates: baseDates,
+      kospi:    kospi60,
+      kosdaq:   kosdaq60,
+      portfolio: portfolio60,
       individual
     });
 
