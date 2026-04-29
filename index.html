@@ -1733,6 +1733,40 @@ function updateChartStockSelect() {
   if(prev) sel.value = prev;
 }
 
+
+// ── Init ──
+renderStocks();
+updateStepUI();
+fetchMacro();
+fetchNews();
+loadAlertSettings();
+fetchStockAlert();
+fetchPortfolio();
+
+// 파일 input 이벤트 — 모바일 호환성
+(function() {
+  const fi = document.getElementById('file-info');
+  if(fi) {
+    fi.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFileInfo(e);
+    });
+    fi.addEventListener('click', function() { this.value = ''; });
+  }
+  const fb = document.getElementById('file-briefing');
+  if(fb) {
+    fb.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFile(e,'briefing');
+    });
+    fb.addEventListener('click', function() { this.value = ''; });
+  }
+  const fc = document.getElementById('file-chart');
+  if(fc) {
+    fc.addEventListener('change', function(e) {
+      if(e.target.files && e.target.files.length > 0) handleFile(e,'chart');
+    });
+    fc.addEventListener('click', function() { this.value = ''; });
+  }
+})();
 </script>
 </body>
 
