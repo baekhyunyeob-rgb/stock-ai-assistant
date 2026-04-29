@@ -1691,7 +1691,13 @@ function drawPortfolioChart() {
   const baseLineX = baseIdx;
 
   const useDates = dates || [];
-  const useLen = useDates.length;
+  // 모든 시리즈 길이 통일
+  const useLen = Math.min(
+    useDates.length,
+    rKospi.length,
+    rKosdaq.length,
+    rMyData.length || Infinity
+  );
 
   // 재정규화된 데이터로 범위 계산
   const allVals = [...rMyData, ...rKospi, ...rKosdaq].filter(v => v != null);
@@ -1745,7 +1751,7 @@ function drawPortfolioChart() {
     ctx.setLineDash([]);
   }
 
-  // 시리즈 그리기
+  // 시리즈 그리기 - 모든 시리즈 동일한 길이(useLen) 기준
   series.forEach(({ data, color }) => {
     if(!data || data.every(v => v == null)) return;
     ctx.strokeStyle = color;
@@ -1753,13 +1759,14 @@ function drawPortfolioChart() {
     ctx.lineJoin = 'round';
     ctx.beginPath();
     let started = false;
-    data.forEach((v, i) => {
-      if(v == null) return;
+    for(let i = 0; i < useLen; i++) {
+      const v = data[i];
+      if(v == null) continue;
       const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
       const y = padT + gH * (1 - (v - minV) / range);
       if(!started) { ctx.moveTo(x, y); started = true; }
       else ctx.lineTo(x, y);
-    });
+    }
     ctx.stroke();
   });
 
