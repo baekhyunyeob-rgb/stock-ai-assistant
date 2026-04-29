@@ -1560,7 +1560,7 @@ async function fetchPortfolio() {
     const stocksWithCode = stocks.map(s => ({
       name: s.name,
       qty: s.qty,
-      stockCode: s.stockCode || null
+      stockCode: s.stockCode || alertData[s.name]?.stockCode || null
     }));
     const r = await fetch('/api/portfolio', {
       method: 'POST',
@@ -1579,7 +1579,7 @@ function drawPortfolioChart() {
   if(!canvas || !portfolioData) return;
 
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.offsetWidth;
+  const W = canvas.parentElement?.offsetWidth || 320;
   const H = 140;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
@@ -1677,6 +1677,7 @@ fetchMacro();
 fetchNews();
 loadAlertSettings();
 fetchStockAlert();
+fetchPortfolio();
 
 // 파일 input 이벤트 — 모바일 호환성을 위해 addEventListener 사용
 (function() {
