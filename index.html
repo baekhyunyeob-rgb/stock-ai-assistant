@@ -499,36 +499,34 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 <div class="screen" id="screen-chart">
 
   <!-- 포트폴리오 비교 차트 -->
-  <div class="portfolio-chart-wrap">
-    <!-- 컨트롤 -->
-    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:10px 12px">
+    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
       <div style="flex:1">
         <div style="font-size:10px;color:var(--text3);margin-bottom:2px">기준일</div>
         <input type="date" id="chart-base-date"
-          style="width:100%;font-size:12px;padding:5px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
-          onchange="onChartControlChange()">
+          style="width:100%;font-size:12px;padding:4px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
+          onchange="drawPortfolioChart()">
       </div>
       <div style="flex:1">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">표시 종목</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">표시</div>
         <select id="chart-stock-select"
-          style="width:100%;font-size:12px;padding:5px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
-          onchange="onChartControlChange()">
+          style="width:100%;font-size:12px;padding:4px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
+          onchange="drawPortfolioChart()">
           <option value="total">내 총액(가상)</option>
         </select>
       </div>
     </div>
-    <!-- 레전드 -->
-    <div class="portfolio-chart-title">
-      <span>📊 비교 차트 (시작점 100 기준)</span>
-      <div class="portfolio-legend">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--text3)">📊 60일 비교 (기준일=100)</span>
+      <div style="display:flex;gap:8px;font-size:10px">
         <span><span style="color:#FF3B30">━</span> <span id="legend-my">내 총액</span></span>
         <span><span style="color:#007AFF">━</span> 코스피</span>
         <span><span style="color:#34C759">━</span> 코스닥</span>
       </div>
     </div>
-    <canvas id="portfolio-canvas"></canvas>
-    <div id="portfolio-status" style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">불러오는 중...</div>
-    <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px;opacity:0.7">* 총액은 현재 보유종목을 기준일부터 보유했다고 가정한 가상 수치</div>
+    <canvas id="portfolio-canvas" style="width:100%;height:130px;display:block"></canvas>
+    <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
+    <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:1px">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
   </div>
 
   <div class="token-bar">
@@ -1575,43 +1573,149 @@ let portfolioData = null;
 
 async function fetchPortfolio() {
   if(stocks.length === 0) return;
-  document.getElementById('portfolio-status').textContent = '불러오는 중...';
-  try {
-    const stocksWithCode = stocks.map(s => ({
-      name: s.name,
-      qty: s.qty,
-      stockCode: s.stockCode || alertData[s.name]?.stockCode || null
-    }));
-    const baseDate = document.getElementById('chart-base-date')?.value || '';
-    const r = await fetch('/api/portfolio', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ stocks: stocksWithCode, baseDate })
+  const sel = document.getElementById('chart-stock-select');
+  if(sel) {
+    const prev = sel.value;
+    sel.innerHTML = '<option value="total">내 총액(가상)</option>';
+    stocks.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.name; o.textContent = s.name;
+      sel.appendChild(o);
     });
-    portfolioData = await r.json();
-
-    // 종목 선택 드롭다운 업데이트
-    const sel = document.getElementById('chart-stock-select');
-    if(sel) {
-      const prev = sel.value;
-      sel.innerHTML = '<option value="total">내 총액(가상)</option>';
-      stocks.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.name;
-        opt.textContent = s.name;
-        sel.appendChild(opt);
-      });
-      sel.value = prev || 'total';
-    }
-
+    sel.value = prev || 'total';
+  }
+  const st = document.getElementById('portfolio-status');
+  if(st) st.textContent = '불러오는 중...';
+  const stocksWithCode = stocks.map(s => ({
+    name: s.name, qty: s.qty,
+    stockCode: s.stockCode || alertData[s.name]?.stockCode || null
+  }));
+  fetch('/api/portfolio', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({stocks: stocksWithCode})
+  }).then(r=>r.json()).then(d=>{
+    portfolioData = d;
     drawPortfolioChart();
-  } catch(e) {
-    document.getElementById('portfolio-status').textContent = '차트 로딩 실패';
+  }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
+}
+
+function drawPortfolioChart() {
+  const canvas = document.getElementById('portfolio-canvas');
+  if(!canvas || !portfolioData) return;
+
+  // 캔버스 크기
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.offsetWidth || 300;
+  const H = 130;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const { dates, rawDates, kospi, kosdaq, portfolio, individual } = portfolioData;
+
+  // 선택 종목
+  const sel = (document.getElementById('chart-stock-select')?.value) || 'total';
+  const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
+  const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
+  const lEl = document.getElementById('legend-my');
+  if(lEl) lEl.textContent = myLabel;
+
+  // N: 공통 길이 (dates, kospi, kosdaq 최소값)
+  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length);
+  if(N < 2) return;
+
+  // 기준일 인덱스
+  const baseDate = document.getElementById('chart-base-date')?.value || '';
+  let bi = 0;
+  if(baseDate && rawDates) {
+    for(let i=0; i<N; i++) {
+      if(rawDates[i] && rawDates[i] >= baseDate) { bi = i; break; }
+    }
+  }
+
+  // 기준일 값으로 정규화 (N개 고정)
+  const norm = (arr) => {
+    if(!arr || arr.length < 1) return Array(N).fill(null);
+    const base = arr[bi];
+    if(!base) return Array(N).fill(null);
+    return Array.from({length:N}, (_,i) => {
+      const v = arr[i];
+      return v != null ? Math.round(v/base*1000)/10 : null;
+    });
+  };
+
+  const rK = norm(kospi);
+  const rQ = norm(kosdaq);
+  const rM = norm(myRaw);
+
+  // Y 범위
+  const all = [...rK,...rQ,...rM].filter(v=>v!=null);
+  if(!all.length) return;
+  const yMin = Math.min(...all) - 1.5;
+  const yMax = Math.max(...all) + 1.5;
+  const yR = yMax - yMin;
+
+  // 레이아웃
+  const pL=32, pR=8, pT=6, pB=18;
+  const gW=W-pL-pR, gH=H-pT-pB;
+  const xAt = i => pL + (i/(N-1))*gW;
+  const yAt = v => pT + gH*(1-(v-yMin)/yR);
+
+  // 그리드
+  ctx.strokeStyle='rgba(128,128,128,0.15)'; ctx.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1].forEach(t=>{
+    const y=pT+gH*(1-t);
+    ctx.beginPath(); ctx.moveTo(pL,y); ctx.lineTo(W-pR,y); ctx.stroke();
+    ctx.fillStyle='rgba(128,128,128,0.7)'; ctx.font='9px sans-serif'; ctx.textAlign='right';
+    ctx.fillText((yMin+yR*t).toFixed(1), pL-3, y+3);
+  });
+
+  // X축 날짜
+  ctx.fillStyle='rgba(128,128,128,0.7)'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+  const step=Math.floor(N/5)||1;
+  for(let i=0;i<N-1;i+=step) ctx.fillText((dates||[])[i]||'', xAt(i), H-3);
+  ctx.fillText((dates||[])[N-1]||'', xAt(N-1), H-3);
+
+  // 기준일 수직선
+  if(bi>0) {
+    ctx.strokeStyle='rgba(200,200,200,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(xAt(bi),pT); ctx.lineTo(xAt(bi),pT+gH); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 선 그리기
+  [[rM,'#FF3B30'],[rK,'#007AFF'],[rQ,'#34C759']].forEach(([data,color])=>{
+    if(!data||data.every(v=>v==null)) return;
+    // 유효한 마지막 인덱스
+    let end=N-1; while(end>0&&data[end]==null) end--;
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.lineJoin='round';
+    ctx.beginPath(); let pen=false;
+    for(let i=0;i<=end;i++){
+      const v=data[i]; if(v==null){pen=false;continue;}
+      if(!pen){ctx.moveTo(xAt(i),yAt(v));pen=true;} else ctx.lineTo(xAt(i),yAt(v));
+    }
+    ctx.stroke();
+  });
+
+  // 하단 수치
+  const last=(arr)=>{for(let i=N-1;i>=0;i--)if(arr&&arr[i]!=null)return arr[i];return null;};
+  const lM=last(rM),lK=last(rK),lQ=last(rQ);
+  const fmt=v=>v!=null?(v>=100?'+':'')+(v-100).toFixed(1)+'%':'-';
+  const st=document.getElementById('portfolio-status');
+  if(st){
+    let h='';
+    if(lM!=null) h+='<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
+    h+='<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
+    h+='<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
+    st.innerHTML=h;
   }
 }
 
 function onChartControlChange() {
-  // 기준일/종목 변경은 재그리기만, API 재호출 없음
   if(portfolioData) drawPortfolioChart();
 }
 
@@ -1629,187 +1733,6 @@ function updateChartStockSelect() {
   if(prev) sel.value = prev;
 }
 
-function drawPortfolioChart() {
-  const canvas = document.getElementById('portfolio-canvas');
-  if(!canvas || !portfolioData) return;
-
-  // ── 캔버스 크기 설정 ──
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement?.offsetWidth || 320;
-  const H = 140;
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, W, H);
-
-  // ── 원본 데이터 ──
-  const { dates, kospi, kosdaq, portfolio, individual } = portfolioData;
-  const sel = document.getElementById('chart-stock-select')?.value || 'total';
-  const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
-  const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
-
-  // ── 공통 길이: 세 배열 모두 유효한 최소 길이 ──
-  const N = Math.min(
-    (dates   || []).length,
-    (kospi   || []).length,
-    (kosdaq  || []).length
-  );
-  if(N === 0) return;
-
-  // ── 기준일 인덱스 ──
-  const baseDate = document.getElementById('chart-base-date')?.value || '';
-  let baseIdx = 0;
-  if(baseDate && portfolioData.rawDates?.length) {
-    const found = portfolioData.rawDates.findIndex(d => d >= baseDate);
-    if(found >= 0 && found < N) baseIdx = found;
-  }
-
-  // ── 기준일 값으로 정규화 (전체 N개) ──
-  const normByBase = (arr) => {
-    const base = (arr || [])[baseIdx];
-    if(!base || base === 0) return Array(N).fill(null);
-    return Array.from({length: N}, (_, i) => {
-      const v = (arr || [])[i];
-      return v != null ? parseFloat((v / base * 100).toFixed(2)) : null;
-    });
-  };
-
-  const rKospi  = normByBase(kospi);
-  const rKosdaq = normByBase(kosdaq);
-  const rMyData = myRaw ? normByBase(myRaw) : Array(N).fill(null);
-
-  // ── 레전드 ──
-  const legendMy = document.getElementById('legend-my');
-  if(legendMy) legendMy.textContent = myLabel;
-
-  // ── Y축 범위 (정규화된 값 기준) ──
-  const allVals = [...rKospi, ...rKosdaq, ...rMyData].filter(v => v != null);
-  if(allVals.length === 0) return;
-  const pad = 1.5;
-  const minV = Math.min(...allVals) - pad;
-  const maxV = Math.max(...allVals) + pad;
-  const range = maxV - minV || 1;
-
-  // ── 레이아웃 ──
-  const padL = 36, padR = 8, padT = 8, padB = 20;
-  const gW = W - padL - padR;
-  const gH = H - padT - padB;
-
-  // X 좌표 계산 함수 (0~N-1 → padL~padL+gW)
-  const xAt = (i) => padL + (N > 1 ? i / (N - 1) : 0) * gW;
-  const yAt = (v) => padT + gH * (1 - (v - minV) / range);
-
-  // ── 그리드 라인 + Y축 레이블 ──
-  ctx.strokeStyle = 'rgba(128,128,128,0.15)';
-  ctx.lineWidth = 0.5;
-  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
-    const y = padT + gH * (1 - t);
-    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-    ctx.fillStyle = 'rgba(128,128,128,0.7)';
-    ctx.font = '9px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText((minV + range * t).toFixed(1), padL - 3, y + 3);
-  });
-
-  // ── X축 날짜 ──
-  ctx.fillStyle = 'rgba(128,128,128,0.7)';
-  ctx.font = '9px sans-serif';
-  ctx.textAlign = 'center';
-  const step = Math.floor(N / 5) || 1;
-  for(let i = 0; i < N; i += step) {
-    ctx.fillText((dates || [])[i] || '', xAt(i), H - 4);
-  }
-  // 마지막 날짜 항상 표시
-  ctx.fillText((dates || [])[N-1] || '', xAt(N-1), H - 4);
-
-  // ── 기준일 수직선 ──
-  if(baseIdx > 0) {
-    ctx.strokeStyle = 'rgba(200,200,200,0.5)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(xAt(baseIdx), padT);
-    ctx.lineTo(xAt(baseIdx), padT + gH);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // ── 시리즈 그리기 ──
-  const series = [
-    { data: rMyData,  color: '#FF3B30' },
-    { data: rKospi,   color: '#007AFF' },
-    { data: rKosdaq,  color: '#34C759' }
-  ];
-  series.forEach(({ data, color }) => {
-    if(!data || data.every(v => v == null)) return;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = 'round';
-    // null이 아닌 마지막 유효 인덱스 찾기
-    let lastValidIdx = 0;
-    for(let i = N-1; i >= 0; i--) { if(data[i] != null) { lastValidIdx = i; break; } }
-    ctx.beginPath();
-    let started = false;
-    for(let i = 0; i <= lastValidIdx; i++) {
-      const v = data[i];
-      if(v == null) { started = false; continue; }
-      const x = xAt(i), y = yAt(v);
-      if(!started) { ctx.moveTo(x, y); started = true; }
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  });
-
-  // ── 하단 수치 (기준일 대비 현재 %) ──
-  const lastValid = (arr) => { for(let i=N-1;i>=0;i--) if(arr[i]!=null) return arr[i]; return null; };
-  const lP = lastValid(rMyData), lK = lastValid(rKospi), lQ = lastValid(rKosdaq);
-  const fmt = (v) => v != null ? (v >= 100 ? '+' : '') + (v - 100).toFixed(1) + '%' : '-';
-  const status = document.getElementById('portfolio-status');
-  if(status) {
-    let html = '';
-    if(lP != null) html += '<span style="color:#FF3B30">' + myLabel + ' ' + fmt(lP) + '</span> &nbsp; ';
-    if(lK != null) html += '<span style="color:#007AFF">코스피 ' + fmt(lK) + '</span> &nbsp; ';
-    if(lQ != null) html += '<span style="color:#34C759">코스닥 ' + fmt(lQ) + '</span>';
-    status.innerHTML = html || '데이터 없음';
-  }
-}
-
-// ── Init ──
-renderStocks();
-updateStepUI();
-fetchMacro();
-fetchNews();
-loadAlertSettings();
-fetchStockAlert();
-fetchPortfolio();
-
-// 파일 input 이벤트 — 모바일 호환성을 위해 addEventListener 사용
-(function() {
-  const fi = document.getElementById('file-info');
-  if(fi) {
-    fi.addEventListener('change', function(e) {
-      if(e.target.files && e.target.files.length > 0) handleFileInfo(e);
-    });
-    fi.addEventListener('click', function() { this.value = ''; });
-  }
-  const fb = document.getElementById('file-briefing');
-  if(fb) {
-    fb.addEventListener('change', function(e) {
-      if(e.target.files && e.target.files.length > 0) handleFile(e,'briefing');
-    });
-    fb.addEventListener('click', function() { this.value = ''; });
-  }
-  const fc = document.getElementById('file-chart');
-  if(fc) {
-    fc.addEventListener('change', function(e) {
-      if(e.target.files && e.target.files.length > 0) handleFile(e,'chart');
-    });
-    fc.addEventListener('click', function() { this.value = ''; });
-  }
-})();
 </script>
 </body>
 
