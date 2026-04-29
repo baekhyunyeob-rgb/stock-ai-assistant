@@ -1691,11 +1691,12 @@ function drawPortfolioChart() {
   const useDates = slicedDates;
   const useLen = useDates.length;
 
-  // 전체 범위 계산
-  const allVals = [...(portfolio||[]), ...(kospi||[]), ...(kosdaq||[])].filter(v => v != null);
+  // 재정규화된 데이터로 범위 계산
+  const allVals = [...rMyData, ...rKospi, ...rKosdaq].filter(v => v != null);
   if(allVals.length === 0) return;
-  const minV = Math.min(...allVals);
-  const maxV = Math.max(...allVals);
+  const pad = 2;
+  const minV = Math.min(...allVals) - pad;
+  const maxV = Math.max(...allVals) + pad;
   const range = maxV - minV || 1;
 
   const padL = 36, padR = 8, padT = 8, padB = 20;
