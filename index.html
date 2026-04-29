@@ -282,6 +282,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .btn-confirm{background:var(--info);color:#fff}
 
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -524,7 +525,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
         <span><span style="color:#34C759">━</span> 코스닥</span>
       </div>
     </div>
-    <canvas id="portfolio-canvas" style="width:100%;max-width:100%;height:130px;display:block"></canvas>
+    <div style="position:relative;height:130px"><canvas id="portfolio-canvas"></canvas></div>
     <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
     <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:1px">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
   </div>
@@ -1600,32 +1601,16 @@ async function fetchPortfolio() {
 }
 
 function drawPortfolioChart() {
-  const canvas = document.getElementById('portfolio-canvas');
-  if(!canvas || !portfolioData) return;
-
-  // 캔버스 크기
-  const dpr = window.devicePixelRatio || 1;
-  // 캔버스 너비 - 차트 화면 너비 기준
-  const W = document.getElementById('screen-chart')?.getBoundingClientRect().width - 24 || 300;
-  const H = 130;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, W, H);
+  if(!portfolioData) return;
 
   const { dates, rawDates, kospi, kosdaq, portfolio, individual } = portfolioData;
-
-  // 선택 종목
-  const sel = (document.getElementById('chart-stock-select')?.value) || 'total';
+  const sel = document.getElementById('chart-stock-select')?.value || 'total';
   const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
   const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
+
   const lEl = document.getElementById('legend-my');
   if(lEl) lEl.textContent = myLabel;
 
-  // N: 공통 길이 (dates, kospi, kosdaq 최소값)
   const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length);
   if(N < 2) return;
 
@@ -1638,7 +1623,7 @@ function drawPortfolioChart() {
     }
   }
 
-  // 기준일 값으로 정규화 (N개 고정)
+  // 정규화
   const norm = (arr) => {
     if(!arr || arr.length < 1) return Array(N).fill(null);
     const base = arr[bi];
@@ -1653,67 +1638,94 @@ function drawPortfolioChart() {
   const rQ = norm(kosdaq);
   const rM = norm(myRaw);
 
-  // Y 범위
-  const all = [...rK,...rQ,...rM].filter(v=>v!=null);
-  if(!all.length) return;
-  const yMin = Math.min(...all) - 1.5;
-  const yMax = Math.max(...all) + 1.5;
-  const yR = yMax - yMin;
-
-  // 레이아웃
-  const pL=32, pR=8, pT=6, pB=18;
-  const gW=W-pL-pR, gH=H-pT-pB;
-  const xAt = i => pL + (i/(N-1))*gW;
-  const yAt = v => pT + gH*(1-(v-yMin)/yR);
-
-  // 그리드
-  ctx.strokeStyle='rgba(128,128,128,0.15)'; ctx.lineWidth=0.5;
-  [0,0.25,0.5,0.75,1].forEach(t=>{
-    const y=pT+gH*(1-t);
-    ctx.beginPath(); ctx.moveTo(pL,y); ctx.lineTo(W-pR,y); ctx.stroke();
-    ctx.fillStyle='rgba(128,128,128,0.7)'; ctx.font='9px sans-serif'; ctx.textAlign='right';
-    ctx.fillText((yMin+yR*t).toFixed(1), pL-3, y+3);
-  });
-
-  // X축 날짜
-  ctx.fillStyle='rgba(128,128,128,0.7)'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-  const step=Math.floor(N/5)||1;
-  for(let i=0;i<N-1;i+=step) ctx.fillText((dates||[])[i]||'', xAt(i), H-3);
-  ctx.fillText((dates||[])[N-1]||'', xAt(N-1), H-3);
-
-  // 기준일 수직선
-  if(bi>0) {
-    ctx.strokeStyle='rgba(200,200,200,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
-    ctx.beginPath(); ctx.moveTo(xAt(bi),pT); ctx.lineTo(xAt(bi),pT+gH); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // 선 그리기
-  [[rM,'#FF3B30'],[rK,'#007AFF'],[rQ,'#34C759']].forEach(([data,color])=>{
-    if(!data||data.every(v=>v==null)) return;
-    // 유효한 마지막 인덱스
-    let end=N-1; while(end>0&&data[end]==null) end--;
-    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.lineJoin='round';
-    ctx.beginPath(); let pen=false;
-    for(let i=0;i<=end;i++){
-      const v=data[i]; if(v==null){pen=false;continue;}
-      if(!pen){ctx.moveTo(xAt(i),yAt(v));pen=true;} else ctx.lineTo(xAt(i),yAt(v));
-    }
-    ctx.stroke();
-  });
-
   // 하단 수치
-  const last=(arr)=>{for(let i=N-1;i>=0;i--)if(arr&&arr[i]!=null)return arr[i];return null;};
-  const lM=last(rM),lK=last(rK),lQ=last(rQ);
-  const fmt=v=>v!=null?(v>=100?'+':'')+(v-100).toFixed(1)+'%':'-';
-  const st=document.getElementById('portfolio-status');
-  if(st){
-    let h='';
-    if(lM!=null) h+='<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
-    h+='<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
-    h+='<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
-    st.innerHTML=h;
+  const last = (arr) => { for(let i=N-1;i>=0;i--) if(arr&&arr[i]!=null) return arr[i]; return null; };
+  const fmt = v => v!=null ? (v>=100?'+':'')+(v-100).toFixed(1)+'%' : '-';
+  const st = document.getElementById('portfolio-status');
+  if(st) {
+    let h = '';
+    const lM=last(rM), lK=last(rK), lQ=last(rQ);
+    if(lM!=null) h += '<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
+    h += '<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
+    h += '<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
+    st.innerHTML = h;
   }
+
+  const canvas = document.getElementById('portfolio-canvas');
+  if(!canvas) return;
+
+  // 기존 차트 제거
+  if(window._portfolioChart) { window._portfolioChart.destroy(); window._portfolioChart = null; }
+
+  window._portfolioChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: (dates||[]).slice(0, N),
+      datasets: [
+        {
+          label: myLabel,
+          data: rM,
+          borderColor: '#FF3B30',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.2,
+          spanGaps: false
+        },
+        {
+          label: '코스피',
+          data: rK,
+          borderColor: '#007AFF',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.2,
+          spanGaps: false
+        },
+        {
+          label: '코스닥',
+          data: rQ,
+          borderColor: '#34C759',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.2,
+          spanGaps: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + (ctx.raw != null ? (ctx.raw-100).toFixed(1)+'%' : '-')
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            font: { size: 9 },
+            color: 'rgba(128,128,128,0.7)',
+            maxTicksLimit: 6,
+            maxRotation: 0
+          },
+          grid: { color: 'rgba(128,128,128,0.1)' }
+        },
+        y: {
+          ticks: {
+            font: { size: 9 },
+            color: 'rgba(128,128,128,0.7)',
+            callback: v => v.toFixed(1)
+          },
+          grid: { color: 'rgba(128,128,128,0.1)' }
+        }
+      }
+    }
+  });
 }
 
 function onChartControlChange() {
