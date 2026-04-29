@@ -499,7 +499,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 <div class="screen" id="screen-chart">
 
   <!-- 포트폴리오 비교 차트 -->
-  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:10px 12px">
+  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:10px 12px;overflow:hidden">
     <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
       <div style="flex:1">
         <div style="font-size:10px;color:var(--text3);margin-bottom:2px">기준일</div>
@@ -524,7 +524,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
         <span><span style="color:#34C759">━</span> 코스닥</span>
       </div>
     </div>
-    <canvas id="portfolio-canvas" style="width:100%;height:130px;display:block"></canvas>
+    <canvas id="portfolio-canvas" style="width:100%;max-width:100%;height:130px;display:block"></canvas>
     <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
     <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:1px">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
   </div>
@@ -1605,7 +1605,8 @@ function drawPortfolioChart() {
 
   // 캔버스 크기
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement.offsetWidth || 300;
+  // 캔버스 너비 - 차트 화면 너비 기준
+  const W = document.getElementById('screen-chart')?.getBoundingClientRect().width - 24 || 300;
   const H = 130;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
