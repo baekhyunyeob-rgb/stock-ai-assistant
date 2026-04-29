@@ -283,6 +283,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 </head>
 <body>
 
@@ -1669,7 +1670,7 @@ function drawPortfolioChart() {
           borderWidth: 1.5,
           pointRadius: 0,
           tension: 0.2,
-          spanGaps: false
+          spanGaps: true
         },
         {
           label: '코스피',
@@ -1678,7 +1679,7 @@ function drawPortfolioChart() {
           borderWidth: 1.5,
           pointRadius: 0,
           tension: 0.2,
-          spanGaps: false
+          spanGaps: true
         },
         {
           label: '코스닥',
@@ -1687,7 +1688,7 @@ function drawPortfolioChart() {
           borderWidth: 1.5,
           pointRadius: 0,
           tension: 0.2,
-          spanGaps: false
+          spanGaps: true
         }
       ]
     },
