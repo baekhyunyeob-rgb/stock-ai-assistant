@@ -1611,9 +1611,8 @@ async function fetchPortfolio() {
 }
 
 function onChartControlChange() {
+  // 기준일/종목 변경은 재그리기만, API 재호출 없음
   if(portfolioData) drawPortfolioChart();
-  // 기준일 바뀌면 다시 fetch
-  fetchPortfolio();
 }
 
 function updateChartStockSelect() {
@@ -1749,9 +1748,12 @@ function drawPortfolioChart() {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
+    // null이 아닌 마지막 유효 인덱스 찾기
+    let lastValidIdx = 0;
+    for(let i = N-1; i >= 0; i--) { if(data[i] != null) { lastValidIdx = i; break; } }
     ctx.beginPath();
     let started = false;
-    for(let i = 0; i < N; i++) {
+    for(let i = 0; i <= lastValidIdx; i++) {
       const v = data[i];
       if(v == null) { started = false; continue; }
       const x = xAt(i), y = yAt(v);
@@ -1761,17 +1763,17 @@ function drawPortfolioChart() {
     ctx.stroke();
   });
 
-  // ── 하단 수치 (기준일 대비 현재) ──
-  const lastR = (arr) => { for(let i=N-1;i>=0;i--) if(arr[i]!=null) return arr[i]; return null; };
-  const lP = lastR(rMyData), lK = lastR(rKospi), lQ = lastR(rKosdaq);
-  const fmt = (v) => v != null ? (v>=100?'+':'') + (v-100).toFixed(1)+'%' : '-';
+  // ── 하단 수치 (기준일 대비 현재 %) ──
+  const lastValid = (arr) => { for(let i=N-1;i>=0;i--) if(arr[i]!=null) return arr[i]; return null; };
+  const lP = lastValid(rMyData), lK = lastValid(rKospi), lQ = lastValid(rKosdaq);
+  const fmt = (v) => v != null ? (v >= 100 ? '+' : '') + (v - 100).toFixed(1) + '%' : '-';
   const status = document.getElementById('portfolio-status');
   if(status) {
     let html = '';
     if(lP != null) html += '<span style="color:#FF3B30">' + myLabel + ' ' + fmt(lP) + '</span> &nbsp; ';
-    html += '<span style="color:#007AFF">코스피 ' + fmt(lK) + '</span> &nbsp; ';
-    html += '<span style="color:#34C759">코스닥 ' + fmt(lQ) + '</span>';
-    status.innerHTML = html;
+    if(lK != null) html += '<span style="color:#007AFF">코스피 ' + fmt(lK) + '</span> &nbsp; ';
+    if(lQ != null) html += '<span style="color:#34C759">코스닥 ' + fmt(lQ) + '</span>';
+    status.innerHTML = html || '데이터 없음';
   }
 }
 
