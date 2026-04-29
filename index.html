@@ -1653,30 +1653,29 @@ function drawPortfolioChart() {
   const myData = sel === 'total' ? portfolio : (individual?.[sel] || null);
   const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
 
-  // 기준일 기준으로 슬라이싱
+  // 기준일 인덱스 찾기 (자르지 않고 기준점만 찾음)
   const baseDate = document.getElementById('chart-base-date')?.value || '';
-  let startIdx = 0;
+  let baseIdx = 0; // 기본: 첫날 기준
   if(baseDate && portfolioData.rawDates?.length) {
-    // rawDates는 YYYY-MM-DD 형식
     const found = portfolioData.rawDates.findIndex(d => d >= baseDate);
-    if(found >= 0) startIdx = found;
+    if(found >= 0) baseIdx = found;
   }
 
-  const slicedDates  = (dates || []).slice(startIdx);
-  const slicedKospi  = (kospi  || []).slice(startIdx);
-  const slicedKosdaq = (kosdaq || []).slice(startIdx);
-  const slicedMyData = (myData || []).slice(startIdx);
-
-  // 기준일부터 재정규화 (첫 값을 100으로)
-  const renorm = (arr) => {
-    const first = arr.find(v => v != null);
-    if(!first) return arr.map(() => null);
-    return arr.map(v => v != null ? parseFloat((v / first * 100).toFixed(2)) : null);
+  // 기준일 값을 100으로 맞춰 전체 60일 정규화
+  const normByBase = (arr) => {
+    const baseVal = arr[baseIdx];
+    if(!baseVal) {
+      // baseIdx 값이 null이면 가장 가까운 유효값 사용
+      const fallback = arr.find(v => v != null);
+      if(!fallback) return arr.map(() => null);
+      return arr.map(v => v != null ? parseFloat((v / fallback * 100).toFixed(2)) : null);
+    }
+    return arr.map(v => v != null ? parseFloat((v / baseVal * 100).toFixed(2)) : null);
   };
 
-  const rKospi  = renorm(slicedKospi);
-  const rKosdaq = renorm(slicedKosdaq);
-  const rMyData = renorm(slicedMyData);
+  const rKospi  = normByBase(kospi  || []);
+  const rKosdaq = normByBase(kosdaq || []);
+  const rMyData = normByBase(myData || []);
 
   const series = [
     { data: rMyData,  color: '#FF3B30', label: myLabel },
@@ -1688,7 +1687,10 @@ function drawPortfolioChart() {
   const legendMy = document.getElementById('legend-my');
   if(legendMy) legendMy.textContent = myLabel;
 
-  const useDates = slicedDates;
+  // 기준일 수직선 위치 저장
+  const baseLineX = baseIdx;
+
+  const useDates = dates || [];
   const useLen = useDates.length;
 
   // 재정규화된 데이터로 범위 계산
@@ -1728,6 +1730,19 @@ function drawPortfolioChart() {
   for(let i = 0; i < useLen; i += step) {
     const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
     ctx.fillText(useDates[i] || '', x, H - 4);
+  }
+
+  // 기준일 수직선
+  if(baseLineX > 0 && baseLineX < useLen) {
+    const bx = padL + (baseLineX / (useLen - 1)) * gW;
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(bx, padT);
+    ctx.lineTo(bx, padT + gH);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // 시리즈 그리기
