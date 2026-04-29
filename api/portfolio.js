@@ -75,11 +75,26 @@ export default async function handler(req, res) {
       return arr.map(v => v != null ? parseFloat((v / first * 100).toFixed(2)) : null);
     };
 
+    // 개별 종목 데이터도 반환
+    const individual = {};
+    for (const stock of (stocks || [])) {
+      const code = stock.stockCode || stockMap[stock.name];
+      if (!code) continue;
+      try {
+        let r = await tryFetch(`${code}.KS`);
+        if (!r) r = await tryFetch(`${code}.KQ`);
+        if (!r) continue;
+        const sc = (r?.indicators?.quote?.[0]?.close || []).filter(c => c != null).slice(-days);
+        individual[stock.name] = normalize(sc);
+      } catch(e) {}
+    }
+
     return res.status(200).json({
       dates,
       kospi:     normalize(ks60),
       kosdaq:    normalize(kq60),
-      portfolio: normalize(portfolio60)
+      portfolio: normalize(portfolio60),
+      individual
     });
 
   } catch(e) {
