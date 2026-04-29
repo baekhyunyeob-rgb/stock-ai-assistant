@@ -1635,9 +1635,22 @@ function drawPortfolioChart() {
     });
   };
 
+  // 유효한 마지막 인덱스 (trailing null 제거)
+  const lastValidIdx = (arr) => {
+    for(let i=N-1; i>=0; i--) if(arr && arr[i] != null) return i;
+    return N-1;
+  };
+
   const rK = norm(kospi);
   const rQ = norm(kosdaq);
   const rM = norm(myRaw);
+
+  // 가장 짧은 유효 길이로 통일
+  const validN = Math.min(lastValidIdx(rK), lastValidIdx(rQ), lastValidIdx(rM)) + 1;
+  const trimmedDates = (dates||[]).slice(0, validN);
+  const trimmedK = rK.slice(0, validN);
+  const trimmedQ = rQ.slice(0, validN);
+  const trimmedM = rM.slice(0, validN);
 
   // 하단 수치
   const last = (arr) => { for(let i=N-1;i>=0;i--) if(arr&&arr[i]!=null) return arr[i]; return null; };
@@ -1645,7 +1658,7 @@ function drawPortfolioChart() {
   const st = document.getElementById('portfolio-status');
   if(st) {
     let h = '';
-    const lM=last(rM), lK=last(rK), lQ=last(rQ);
+    const lM=last(trimmedM), lK=last(trimmedK), lQ=last(trimmedQ);
     if(lM!=null) h += '<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
     h += '<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
     h += '<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
@@ -1661,11 +1674,11 @@ function drawPortfolioChart() {
   window._portfolioChart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels: (dates||[]).slice(0, N),
+      labels: trimmedDates,
       datasets: [
         {
           label: myLabel,
-          data: rM,
+          data: trimmedM,
           borderColor: '#FF3B30',
           borderWidth: 1.5,
           pointRadius: 0,
@@ -1674,7 +1687,7 @@ function drawPortfolioChart() {
         },
         {
           label: '코스피',
-          data: rK,
+          data: trimmedK,
           borderColor: '#007AFF',
           borderWidth: 1.5,
           pointRadius: 0,
@@ -1683,7 +1696,7 @@ function drawPortfolioChart() {
         },
         {
           label: '코스닥',
-          data: rQ,
+          data: trimmedQ,
           borderColor: '#34C759',
           borderWidth: 1.5,
           pointRadius: 0,
