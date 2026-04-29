@@ -1672,11 +1672,40 @@ function drawPortfolioChart() {
   // 기존 차트 제거
   if(window._portfolioChart) { window._portfolioChart.destroy(); window._portfolioChart = null; }
 
-  // annotation 플러그인 등록
-  if(window.ChartAnnotation) Chart.register(window.ChartAnnotation);
+  // 기준일 수직선 플러그인
+  const baseLinePlugin = {
+    id: 'baseLine',
+    afterDraw(chart) {
+      if(bi <= 0) return;
+      const ctx2 = chart.ctx;
+      const xScale = chart.scales.x;
+      const yScale = chart.scales.y;
+      const x = xScale.getPixelForValue(bi);
+      ctx2.save();
+      ctx2.strokeStyle = 'rgba(200,200,200,0.7)';
+      ctx2.lineWidth = 1.5;
+      ctx2.setLineDash([4, 4]);
+      ctx2.beginPath();
+      ctx2.moveTo(x, yScale.top);
+      ctx2.lineTo(x, yScale.bottom);
+      ctx2.stroke();
+      ctx2.setLineDash([]);
+      // 날짜 레이블
+      const label = trimmedDates[bi] || '';
+      ctx2.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx2.font = 'bold 9px sans-serif';
+      ctx2.textAlign = 'center';
+      const tw = ctx2.measureText(label).width;
+      ctx2.fillRect(x - tw/2 - 3, yScale.top, tw + 6, 14);
+      ctx2.fillStyle = '#333';
+      ctx2.fillText(label, x, yScale.top + 10);
+      ctx2.restore();
+    }
+  };
 
   window._portfolioChart = new Chart(canvas, {
     type: 'line',
+    plugins: [baseLinePlugin],
     data: {
       labels: trimmedDates,
       datasets: [
