@@ -1612,7 +1612,8 @@ function drawPortfolioChart() {
   const lEl = document.getElementById('legend-my');
   if(lEl) lEl.textContent = myLabel;
 
-  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length);
+  // 마지막 데이터 제외 (급락 방지)
+  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
   if(N < 2) return;
 
   // 기준일 인덱스
@@ -1670,6 +1671,9 @@ function drawPortfolioChart() {
 
   // 기존 차트 제거
   if(window._portfolioChart) { window._portfolioChart.destroy(); window._portfolioChart = null; }
+
+  // annotation 플러그인 등록
+  if(window.ChartAnnotation) Chart.register(window.ChartAnnotation);
 
   window._portfolioChart = new Chart(canvas, {
     type: 'line',
