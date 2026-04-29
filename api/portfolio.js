@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
@@ -11,6 +14,15 @@ export default async function handler(req, res) {
     const d = await r.json();
     return d?.chart?.result?.[0];
   };
+
+  let stockMap = {};
+  try {
+    const csv = readFileSync(join(process.cwd(), 'data/stocks.csv'), 'utf-8');
+    for (const line of csv.trim().split('\n').slice(1)) {
+      const [name, code] = line.split(',');
+      if (name && code) stockMap[name.trim()] = code.trim();
+    }
+  } catch(e) {}
 
   try {
     // 1. 코스피, 코스닥 지수
@@ -36,10 +48,11 @@ export default async function handler(req, res) {
     const portfolioMap = {}; // date index → 총액
 
     for (const stock of (stocks || [])) {
-      if (!stock.qty || !stock.stockCode) continue;
+      const code = stock.stockCode || stockMap[stock.name];
+      if (!stock.qty || !code) continue;
       try {
-        let result = await tryFetch(`${stock.stockCode}.KS`);
-        if (!result) result = await tryFetch(`${stock.stockCode}.KQ`);
+        let result = await tryFetch(`${code}.KS`);
+        if (!result) result = await tryFetch(`${code}.KQ`);
         if (!result) continue;
 
         const closes = (result?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
