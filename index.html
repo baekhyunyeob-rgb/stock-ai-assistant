@@ -85,6 +85,13 @@ body {
   background: var(--bg);
 }
 
+/* ── 포트폴리오 차트 ── */
+.portfolio-chart-wrap{flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:12px 14px}
+.portfolio-chart-title{font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.portfolio-legend{display:flex;gap:10px;font-size:11px}
+.portfolio-legend span{display:flex;align-items:center;gap:3px}
+canvas#portfolio-canvas{width:100%;height:140px;display:block}
+
 /* ── 게시판 스타일 ── */
 .board-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg1);border-bottom:.5px solid var(--border)}
 .board-title{font-size:13px;font-weight:700;color:var(--text)}
@@ -490,6 +497,20 @@ body {
 
 <!-- ═══ SCREEN 3: 차트분석 ═══ -->
 <div class="screen" id="screen-chart">
+
+  <!-- 포트폴리오 비교 차트 -->
+  <div class="portfolio-chart-wrap">
+    <div class="portfolio-chart-title">
+      <span>📊 60일 비교 (시작점 100 기준)</span>
+      <div class="portfolio-legend">
+        <span><span style="color:#FF3B30">━</span> 내 총액</span>
+        <span><span style="color:#007AFF">━</span> 코스피</span>
+        <span><span style="color:#34C759">━</span> 코스닥</span>
+      </div>
+    </div>
+    <canvas id="portfolio-canvas"></canvas>
+    <div id="portfolio-status" style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">불러오는 중...</div>
+  </div>
 
   <div class="token-bar">
     <b>입력</b><span id="tc-in">0</span>tok
@@ -1529,6 +1550,125 @@ async function fetchStockAlert() {
 
 // ── 모바일 뒤로가기 처리 ──
 // 모바일 뒤로가기 — 브라우저 기본 동작 유지
+
+// ── 포트폴리오 차트 ──
+let portfolioData = null;
+
+async function fetchPortfolio() {
+  if(stocks.length === 0) return;
+  try {
+    const stocksWithCode = stocks.map(s => ({
+      name: s.name,
+      qty: s.qty,
+      stockCode: s.stockCode || null
+    }));
+    const r = await fetch('/api/portfolio', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ stocks: stocksWithCode })
+    });
+    portfolioData = await r.json();
+    drawPortfolioChart();
+  } catch(e) {
+    document.getElementById('portfolio-status').textContent = '차트 로딩 실패';
+  }
+}
+
+function drawPortfolioChart() {
+  const canvas = document.getElementById('portfolio-canvas');
+  if(!canvas || !portfolioData) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth;
+  const H = 140;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const { dates, kospi, kosdaq, portfolio } = portfolioData;
+  const series = [
+    { data: portfolio, color: '#FF3B30', label: '내 총액' },
+    { data: kospi,     color: '#007AFF', label: '코스피' },
+    { data: kosdaq,    color: '#34C759', label: '코스닥' }
+  ];
+
+  // 전체 범위 계산
+  const allVals = [...(portfolio||[]), ...(kospi||[]), ...(kosdaq||[])].filter(v => v != null);
+  if(allVals.length === 0) return;
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const range = maxV - minV || 1;
+
+  const padL = 36, padR = 8, padT = 8, padB = 20;
+  const gW = W - padL - padR;
+  const gH = H - padT - padB;
+
+  // 그리드 라인
+  ctx.strokeStyle = 'rgba(128,128,128,0.15)';
+  ctx.lineWidth = 0.5;
+  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    const y = padT + gH * (1 - t);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.stroke();
+    // Y축 레이블
+    const val = (minV + range * t).toFixed(1);
+    ctx.fillStyle = 'rgba(128,128,128,0.7)';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val, padL - 3, y + 3);
+  });
+
+  // X축 날짜 (6개 정도)
+  ctx.fillStyle = 'rgba(128,128,128,0.7)';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  const step = Math.floor(dates.length / 5);
+  for(let i = 0; i < dates.length; i += step) {
+    const x = padL + (i / (dates.length - 1)) * gW;
+    ctx.fillText(dates[i], x, H - 4);
+  }
+
+  // 시리즈 그리기
+  series.forEach(({ data, color }) => {
+    if(!data || data.every(v => v == null)) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let started = false;
+    data.forEach((v, i) => {
+      if(v == null) return;
+      const x = padL + (i / (data.length - 1)) * gW;
+      const y = padT + gH * (1 - (v - minV) / range);
+      if(!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+
+  // 현재값 표시
+  const lastP = portfolio?.filter(v=>v!=null).pop();
+  const lastK = kospi?.filter(v=>v!=null).pop();
+  const lastQ = kosdaq?.filter(v=>v!=null).pop();
+  const status = document.getElementById('portfolio-status');
+  if(status && lastP && lastK && lastQ) {
+    const pChg = (lastP - 100).toFixed(1);
+    const kChg = (lastK - 100).toFixed(1);
+    const qChg = (lastQ - 100).toFixed(1);
+    const fmt = (v) => (v >= 0 ? '+' : '') + v + '%';
+    status.innerHTML =
+      '<span style="color:#FF3B30">내총액 ' + fmt(pChg) + '</span> &nbsp; ' +
+      '<span style="color:#007AFF">코스피 ' + fmt(kChg) + '</span> &nbsp; ' +
+      '<span style="color:#34C759">코스닥 ' + fmt(qChg) + '</span>';
+  }
+}
 
 // ── Init ──
 renderStocks();
