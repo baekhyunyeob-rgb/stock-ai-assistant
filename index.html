@@ -1656,35 +1656,40 @@ function drawPortfolioChart() {
   // 기준일 기준으로 슬라이싱
   const baseDate = document.getElementById('chart-base-date')?.value || '';
   let startIdx = 0;
-  if(baseDate && dates?.length) {
-    const baseMD = baseDate.slice(5).replace('-', '/'); // MM/DD
-    const found = dates.findIndex(d => d >= baseMD);
+  if(baseDate && portfolioData.rawDates?.length) {
+    // rawDates는 YYYY-MM-DD 형식
+    const found = portfolioData.rawDates.findIndex(d => d >= baseDate);
     if(found >= 0) startIdx = found;
   }
-  const slicedDates    = dates?.slice(startIdx) || [];
-  const slicedKospi    = kospi?.slice(startIdx) || [];
-  const slicedKosdaq   = kosdaq?.slice(startIdx) || [];
-  const slicedMyData   = myData?.slice(startIdx) || [];
 
-  // 기준일부터 재정규화
+  const slicedDates  = (dates || []).slice(startIdx);
+  const slicedKospi  = (kospi  || []).slice(startIdx);
+  const slicedKosdaq = (kosdaq || []).slice(startIdx);
+  const slicedMyData = (myData || []).slice(startIdx);
+
+  // 기준일부터 재정규화 (첫 값을 100으로)
   const renorm = (arr) => {
     const first = arr.find(v => v != null);
-    if(!first) return arr;
+    if(!first) return arr.map(() => null);
     return arr.map(v => v != null ? parseFloat((v / first * 100).toFixed(2)) : null);
   };
 
+  const rKospi  = renorm(slicedKospi);
+  const rKosdaq = renorm(slicedKosdaq);
+  const rMyData = renorm(slicedMyData);
+
   const series = [
-    { data: renorm(slicedMyData),  color: '#FF3B30', label: myLabel },
-    { data: renorm(slicedKospi),   color: '#007AFF', label: '코스피' },
-    { data: renorm(slicedKosdaq),  color: '#34C759', label: '코스닥' }
+    { data: rMyData,  color: '#FF3B30', label: myLabel },
+    { data: rKospi,   color: '#007AFF', label: '코스피' },
+    { data: rKosdaq,  color: '#34C759', label: '코스닥' }
   ];
 
   // 레전드 업데이트
   const legendMy = document.getElementById('legend-my');
   if(legendMy) legendMy.textContent = myLabel;
 
-  // dates를 sliced로 교체
   const useDates = slicedDates;
+  const useLen = useDates.length;
 
   // 전체 범위 계산
   const allVals = [...(portfolio||[]), ...(kospi||[]), ...(kosdaq||[])].filter(v => v != null);
@@ -1718,10 +1723,10 @@ function drawPortfolioChart() {
   ctx.fillStyle = 'rgba(128,128,128,0.7)';
   ctx.font = '9px sans-serif';
   ctx.textAlign = 'center';
-  const step = Math.floor(useDates.length / 5) || 1;
-  for(let i = 0; i < useDates.length; i += step) {
-    const x = padL + (i / (useDates.length - 1)) * gW;
-    ctx.fillText(useDates[i], x, H - 4);
+  const step = Math.floor(useLen / 5) || 1;
+  for(let i = 0; i < useLen; i += step) {
+    const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
+    ctx.fillText(useDates[i] || '', x, H - 4);
   }
 
   // 시리즈 그리기
@@ -1734,7 +1739,7 @@ function drawPortfolioChart() {
     let started = false;
     data.forEach((v, i) => {
       if(v == null) return;
-      const x = padL + (i / (data.length - 1)) * gW;
+      const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
       const y = padT + gH * (1 - (v - minV) / range);
       if(!started) { ctx.moveTo(x, y); started = true; }
       else ctx.lineTo(x, y);

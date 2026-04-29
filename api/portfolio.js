@@ -33,9 +33,15 @@ export default async function handler(req, res) {
 
     const ksCloses = (ksResult?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
     const kqCloses = (kqResult?.indicators?.quote?.[0]?.close || []).filter(c => c != null);
-    const ksDates  = (ksResult?.timestamp || []).map(t => {
+    const ksDates = (ksResult?.timestamp || []).map(t => {
       const d = new Date(t * 1000);
       return (d.getMonth()+1) + '/' + d.getDate();
+    });
+    const ksRawDates = (ksResult?.timestamp || []).map(t => {
+      const d = new Date(t * 1000);
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return d.getFullYear() + '-' + mm + '-' + dd;
     });
 
     // 최근 60일만
@@ -89,8 +95,11 @@ export default async function handler(req, res) {
       } catch(e) {}
     }
 
+    const rawDates = ksRawDates.slice(-days);
+
     return res.status(200).json({
       dates,
+      rawDates,
       kospi:     normalize(ks60),
       kosdaq:    normalize(kq60),
       portfolio: normalize(portfolio60),
