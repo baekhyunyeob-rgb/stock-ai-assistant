@@ -1634,6 +1634,7 @@ function drawPortfolioChart() {
   const canvas = document.getElementById('portfolio-canvas');
   if(!canvas || !portfolioData) return;
 
+  // ── 캔버스 크기 설정 ──
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.parentElement?.offsetWidth || 320;
   const H = 140;
@@ -1641,117 +1642,108 @@ function drawPortfolioChart() {
   canvas.height = H * dpr;
   canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
-
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
+  // ── 원본 데이터 ──
   const { dates, kospi, kosdaq, portfolio, individual } = portfolioData;
-
-  // 선택된 종목
   const sel = document.getElementById('chart-stock-select')?.value || 'total';
-  const myData = sel === 'total' ? portfolio : (individual?.[sel] || null);
+  const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
   const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
 
-  // 기준일 인덱스 찾기 (자르지 않고 기준점만 찾음)
+  // ── 공통 길이: 세 배열 모두 유효한 최소 길이 ──
+  const N = Math.min(
+    (dates   || []).length,
+    (kospi   || []).length,
+    (kosdaq  || []).length
+  );
+  if(N === 0) return;
+
+  // ── 기준일 인덱스 ──
   const baseDate = document.getElementById('chart-base-date')?.value || '';
-  let baseIdx = 0; // 기본: 첫날 기준
+  let baseIdx = 0;
   if(baseDate && portfolioData.rawDates?.length) {
     const found = portfolioData.rawDates.findIndex(d => d >= baseDate);
-    if(found >= 0) baseIdx = found;
+    if(found >= 0 && found < N) baseIdx = found;
   }
 
-  // 기준일 값을 100으로 맞춰 전체 60일 정규화
+  // ── 기준일 값으로 정규화 (전체 N개) ──
   const normByBase = (arr) => {
-    const baseVal = arr[baseIdx];
-    if(!baseVal) {
-      // baseIdx 값이 null이면 가장 가까운 유효값 사용
-      const fallback = arr.find(v => v != null);
-      if(!fallback) return arr.map(() => null);
-      return arr.map(v => v != null ? parseFloat((v / fallback * 100).toFixed(2)) : null);
-    }
-    return arr.map(v => v != null ? parseFloat((v / baseVal * 100).toFixed(2)) : null);
+    const base = (arr || [])[baseIdx];
+    if(!base || base === 0) return Array(N).fill(null);
+    return Array.from({length: N}, (_, i) => {
+      const v = (arr || [])[i];
+      return v != null ? parseFloat((v / base * 100).toFixed(2)) : null;
+    });
   };
 
-  const rKospi  = normByBase(kospi  || []);
-  const rKosdaq = normByBase(kosdaq || []);
-  const rMyData = normByBase(myData || []);
+  const rKospi  = normByBase(kospi);
+  const rKosdaq = normByBase(kosdaq);
+  const rMyData = myRaw ? normByBase(myRaw) : Array(N).fill(null);
 
-  const series = [
-    { data: rMyData,  color: '#FF3B30', label: myLabel },
-    { data: rKospi,   color: '#007AFF', label: '코스피' },
-    { data: rKosdaq,  color: '#34C759', label: '코스닥' }
-  ];
-
-  // 레전드 업데이트
+  // ── 레전드 ──
   const legendMy = document.getElementById('legend-my');
   if(legendMy) legendMy.textContent = myLabel;
 
-  // 기준일 수직선 위치 저장
-  const baseLineX = baseIdx;
-
-  const useDates = dates || [];
-  // 모든 시리즈 길이 통일
-  const useLen = Math.min(
-    useDates.length,
-    rKospi.length,
-    rKosdaq.length,
-    rMyData.length || Infinity
-  );
-
-  // 재정규화된 데이터로 범위 계산
-  const allVals = [...rMyData, ...rKospi, ...rKosdaq].filter(v => v != null);
+  // ── Y축 범위 (정규화된 값 기준) ──
+  const allVals = [...rKospi, ...rKosdaq, ...rMyData].filter(v => v != null);
   if(allVals.length === 0) return;
-  const pad = 2;
+  const pad = 1.5;
   const minV = Math.min(...allVals) - pad;
   const maxV = Math.max(...allVals) + pad;
   const range = maxV - minV || 1;
 
+  // ── 레이아웃 ──
   const padL = 36, padR = 8, padT = 8, padB = 20;
   const gW = W - padL - padR;
   const gH = H - padT - padB;
 
-  // 그리드 라인
+  // X 좌표 계산 함수 (0~N-1 → padL~padL+gW)
+  const xAt = (i) => padL + (N > 1 ? i / (N - 1) : 0) * gW;
+  const yAt = (v) => padT + gH * (1 - (v - minV) / range);
+
+  // ── 그리드 라인 + Y축 레이블 ──
   ctx.strokeStyle = 'rgba(128,128,128,0.15)';
   ctx.lineWidth = 0.5;
   [0, 0.25, 0.5, 0.75, 1].forEach(t => {
     const y = padT + gH * (1 - t);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(W - padR, y);
-    ctx.stroke();
-    // Y축 레이블
-    const val = (minV + range * t).toFixed(1);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
     ctx.fillStyle = 'rgba(128,128,128,0.7)';
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(val, padL - 3, y + 3);
+    ctx.fillText((minV + range * t).toFixed(1), padL - 3, y + 3);
   });
 
-  // X축 날짜 (6개 정도)
+  // ── X축 날짜 ──
   ctx.fillStyle = 'rgba(128,128,128,0.7)';
   ctx.font = '9px sans-serif';
   ctx.textAlign = 'center';
-  const step = Math.floor(useLen / 5) || 1;
-  for(let i = 0; i < useLen; i += step) {
-    const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
-    ctx.fillText(useDates[i] || '', x, H - 4);
+  const step = Math.floor(N / 5) || 1;
+  for(let i = 0; i < N; i += step) {
+    ctx.fillText((dates || [])[i] || '', xAt(i), H - 4);
   }
+  // 마지막 날짜 항상 표시
+  ctx.fillText((dates || [])[N-1] || '', xAt(N-1), H - 4);
 
-  // 기준일 수직선
-  if(baseLineX > 0 && baseLineX < useLen) {
-    const bx = padL + (baseLineX / (useLen - 1)) * gW;
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  // ── 기준일 수직선 ──
+  if(baseIdx > 0) {
+    ctx.strokeStyle = 'rgba(200,200,200,0.5)';
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
-    ctx.moveTo(bx, padT);
-    ctx.lineTo(bx, padT + gH);
+    ctx.moveTo(xAt(baseIdx), padT);
+    ctx.lineTo(xAt(baseIdx), padT + gH);
     ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  // 시리즈 그리기 - 모든 시리즈 동일한 길이(useLen) 기준
+  // ── 시리즈 그리기 ──
+  const series = [
+    { data: rMyData,  color: '#FF3B30' },
+    { data: rKospi,   color: '#007AFF' },
+    { data: rKosdaq,  color: '#34C759' }
+  ];
   series.forEach(({ data, color }) => {
     if(!data || data.every(v => v == null)) return;
     ctx.strokeStyle = color;
@@ -1759,31 +1751,27 @@ function drawPortfolioChart() {
     ctx.lineJoin = 'round';
     ctx.beginPath();
     let started = false;
-    for(let i = 0; i < useLen; i++) {
+    for(let i = 0; i < N; i++) {
       const v = data[i];
-      if(v == null) continue;
-      const x = padL + (useLen > 1 ? i / (useLen - 1) : 0) * gW;
-      const y = padT + gH * (1 - (v - minV) / range);
+      if(v == null) { started = false; continue; }
+      const x = xAt(i), y = yAt(v);
       if(!started) { ctx.moveTo(x, y); started = true; }
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
   });
 
-  // 현재값 표시
-  const lastP = portfolio?.filter(v=>v!=null).pop();
-  const lastK = kospi?.filter(v=>v!=null).pop();
-  const lastQ = kosdaq?.filter(v=>v!=null).pop();
+  // ── 하단 수치 (기준일 대비 현재) ──
+  const lastR = (arr) => { for(let i=N-1;i>=0;i--) if(arr[i]!=null) return arr[i]; return null; };
+  const lP = lastR(rMyData), lK = lastR(rKospi), lQ = lastR(rKosdaq);
+  const fmt = (v) => v != null ? (v>=100?'+':'') + (v-100).toFixed(1)+'%' : '-';
   const status = document.getElementById('portfolio-status');
-  if(status && lastP && lastK && lastQ) {
-    const pChg = (lastP - 100).toFixed(1);
-    const kChg = (lastK - 100).toFixed(1);
-    const qChg = (lastQ - 100).toFixed(1);
-    const fmt = (v) => (v >= 0 ? '+' : '') + v + '%';
-    status.innerHTML =
-      '<span style="color:#FF3B30">내총액 ' + fmt(pChg) + '</span> &nbsp; ' +
-      '<span style="color:#007AFF">코스피 ' + fmt(kChg) + '</span> &nbsp; ' +
-      '<span style="color:#34C759">코스닥 ' + fmt(qChg) + '</span>';
+  if(status) {
+    let html = '';
+    if(lP != null) html += '<span style="color:#FF3B30">' + myLabel + ' ' + fmt(lP) + '</span> &nbsp; ';
+    html += '<span style="color:#007AFF">코스피 ' + fmt(lK) + '</span> &nbsp; ';
+    html += '<span style="color:#34C759">코스닥 ' + fmt(lQ) + '</span>';
+    status.innerHTML = html;
   }
 }
 
