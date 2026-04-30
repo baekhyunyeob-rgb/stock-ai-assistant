@@ -479,7 +479,14 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
     <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:2px">* 현재 보유종목을 기간 내내 보유했다고 가정한 가상 수치</div>
   </div>
-  <!-- AI 분석 결과 -->
+  <!-- AI 분석 버튼 + 결과 -->
+  <div style="flex-shrink:0;padding:8px 12px;border-bottom:.5px solid var(--border)">
+    <button id="trend-ai-btn" onclick="onTrendAIBtn()"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--info);background:var(--info-bg);color:var(--info);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+      🤖 AI 분석
+    </button>
+    <div id="trend-ai-time" style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;display:none"></div>
+  </div>
   <div class="panel-scroll" id="trend-analysis"></div>
 </div>
 
@@ -505,10 +512,16 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>
   </div>
 
-  <!-- AI 자동 분석 결과 -->
+  <!-- AI 분석 버튼 + 결과 -->
+  <div style="flex-shrink:0;padding:8px 12px;border-bottom:.5px solid var(--border)">
+    <button id="briefing-ai-btn" onclick="onBriefingAIBtn()"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--info);background:var(--info-bg);color:var(--info);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+      🤖 AI 브리핑
+    </button>
+    <div id="briefing-ai-time" style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;display:none"></div>
+  </div>
   <div id="briefing-analysis" style="flex-shrink:0;padding:12px 14px;border-bottom:.5px solid var(--border);display:none">
-    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">🤖 AI 브리핑</div>
-    <div id="briefing-result" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+    <div id="briefing-result" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;max-height:220px;overflow-y:auto"></div>
   </div>
   <!-- 채팅 (추가 질문용) -->
   <div class="chat-wrap">
@@ -625,25 +638,46 @@ function switchScreen(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   btn.classList.add('active');
-  if(name === 'trend' && stocks.length > 0) {
-    fetchPortfolio();
-    // 포트폴리오 로드 완료 후 자동 분석 (delay)
-    setTimeout(() => { if(portfolioData) analyzePortfolioChart(); }, 4000);
-  }
-  if(name === 'briefing') autoBriefing();
+  if(name === 'trend' && stocks.length > 0) fetchPortfolio();
 }
 
-function autoBriefing() {
-  const resultEl = document.getElementById('briefing-result');
-  if(resultEl && resultEl.textContent.length > 10) return; // 이미 분석됨
-  // 현재 시간대 자동 감지 (KST)
+// ── AI 분석 버튼 제어 ──
+const AI_COOLDOWN = 30 * 60 * 1000; // 30분
+
+function getTimeLabel() {
   const h = new Date(Date.now() + 9*3600000).getUTCHours();
-  if(h >= 9 && h < 12) curTimeTab = '오전장';
-  else if(h >= 12 && h < 15) curTimeTab = '오후장';
-  else if(h >= 15 && h < 18) curTimeTab = '애프터마켓';
-  else if(h >= 18 || h < 6) curTimeTab = '프리마켓';
-  else curTimeTab = '개장 전';
+  if(h >= 9 && h < 12) return '오전장';
+  if(h >= 12 && h < 15) return '오후장';
+  if(h >= 15 && h < 18) return '애프터마켓';
+  if(h >= 18 || h < 6) return '프리마켓';
+  return '개장 전';
+}
+
+function setAIBtnCooldown(btnId, timeId) {
+  const btn = document.getElementById(btnId);
+  const timeEl = document.getElementById(timeId);
+  if(!btn) return;
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  btn.style.cursor = 'not-allowed';
+  const now = new Date();
+  const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+  if(timeEl) { timeEl.textContent = '분석 완료 ' + timeStr + ' (30분 후 재분석 가능)'; timeEl.style.display='block'; }
+  setTimeout(() => {
+    if(btn) { btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; }
+    if(timeEl) timeEl.style.display='none';
+  }, AI_COOLDOWN);
+}
+
+function onBriefingAIBtn() {
+  curTimeTab = getTimeLabel();
+  setAIBtnCooldown('briefing-ai-btn', 'briefing-ai-time');
   callBriefingAnalysis();
+}
+
+function onTrendAIBtn() {
+  setAIBtnCooldown('trend-ai-btn', 'trend-ai-time');
+  analyzePortfolioChart();
 }
 
 async function callBriefingAnalysis() {
@@ -1748,7 +1782,7 @@ function drawPortfolioChart() {
   const baseLinePlugin = {
     id:'baseLine',
     afterDraw(chart) {
-      if(bi<=0) return;
+      if(!baseDate) return; // 기준일 입력 없으면 수직선 없음
       const ctx2=chart.ctx, xs=chart.scales.x, ys=chart.scales.y;
       const x=xs.getPixelForValue(bi);
       ctx2.save();
