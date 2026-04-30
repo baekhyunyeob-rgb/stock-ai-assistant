@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 <title>Stock AI Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+
 /* ── RESET ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 
@@ -229,7 +230,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .msg.ai{background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow);}
 .msg.user{background:var(--info);color:#fff;align-self:flex-end;border-radius:16px 4px 16px 16px;padding:11px 14px;}
 .msg.system{background:var(--warn-bg);color:var(--warn);font-size:12px;text-align:left;align-self:flex-start;border-radius:10px;padding:8px 14px;max-width:96%;line-height:1.6;border:.5px solid var(--border);}
-.msg.step-badge{background:var(--info-bg);color:var(--info);font-size:12px;font-weight:700;align-self:center;border-radius:20px;padding:5px 16px;border:.5px solid rgba(0,122,255,.2);max-width:96%;text-align:center;}
+.msg
 .typing{display:flex;gap:5px;align-items:center;padding:11px 14px;background:var(--bg1);border:.5px solid var(--border);border-radius:4px 16px 16px 16px;width:fit-content;box-shadow:var(--shadow);}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--text4);animation:bonce 1s infinite}
 .dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
@@ -281,9 +282,25 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .btn-cancel{background:var(--bg2);color:var(--text2)}
 .btn-confirm{background:var(--info);color:#fff}
 
+
+/* ── 포트폴리오 차트 ── */
+.portfolio-wrap{flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:10px 12px}
+.portfolio-controls{display:flex;gap:8px;margin-bottom:6px}
+.portfolio-control{flex:1}
+.portfolio-control label{display:block;font-size:10px;color:var(--text3);margin-bottom:2px}
+.portfolio-control input,.portfolio-control select{width:100%;font-size:12px;padding:4px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit}
+.portfolio-legend{display:flex;gap:8px;font-size:10px;color:var(--text3)}
+.portfolio-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.analyze-btn{font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--info-bg);color:var(--info);cursor:pointer;font-family:inherit}
+/* ── 차트분석 듀얼 AI ── */
+.dual-ai-wrap{display:flex;gap:8px;padding:8px}
+.ai-result-box{flex:1;background:var(--bg1);border-radius:12px;padding:10px;border:.5px solid var(--border)}
+.ai-result-label{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px}
+.ai-result-text{font-size:12px;color:var(--text2);line-height:1.5;white-space:pre-wrap}
+/* ── 예수금 ── */
+.cash-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:.5px solid var(--border)}
+
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 </head>
 <body>
 
@@ -294,10 +311,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div class="app-title">Stock AI Assistant</div>
     <div class="app-sub">한국주식 AI 어시스턴트 · Beta</div>
   </div>
-  <div class="live-pill">
-    <div class="live-dot"></div>
-    <span class="live-label">LIVE</span>
-  </div>
+  <div class="live-pill"><div class="live-dot"></div><span class="live-label">LIVE</span></div>
 </header>
 
 <!-- ═══ SCREEN 1: 내 정보 ═══ -->
@@ -332,7 +346,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
           <div class="disc-item"><span class="disc-num">⑤</span><span class="disc-text">본 앱 이용 시 위 내용에 동의한 것으로 간주합니다.</span></div>
         </div>
       </div>
-      <div id="prev-info" style="display:none;flex-wrap:wrap;gap:8px;padding:8px 12px"></div>
+      <div id="prev-info" style="display:none;flex-wrap:wrap;gap:8px"></div>
       <input type="file" id="file-info" accept="image/*" multiple style="display:none">
     </div>
   </div>
@@ -341,25 +355,19 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
   <div class="panel" id="panel-config">
     <div class="panel-scroll">
 
-      <!-- AI 어시스턴트 선택 -->
+      <!-- AI 어시스턴트 -->
       <div class="card">
         <div class="card-label">AI 어시스턴트</div>
         <div class="row">
-          <span class="row-label">🤖 Gemini</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:12px;color:var(--success);background:var(--success-bg);padding:2px 8px;border-radius:10px;font-weight:600">무료</span>
-            <input type="radio" name="ai-model" id="ai-gemini" value="gemini" checked onchange="onModelChange()">
+          <span class="row-label">모델 선택</span>
+          <div style="display:flex;gap:12px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px">
+              <input type="radio" name="ai-model" id="ai-gemini" value="gemini" onchange="onModelChange(this)"> Gemini (무료)
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px">
+              <input type="radio" name="ai-model" id="ai-claude" value="claude" onchange="onModelChange(this)"> Claude (유료)
+            </label>
           </div>
-        </div>
-        <div class="row">
-          <span class="row-label">⚡ Claude</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:12px;color:var(--warn);background:var(--warn-bg);padding:2px 8px;border-radius:10px;font-weight:600">유료</span>
-            <input type="radio" name="ai-model" id="ai-claude" value="claude" onchange="onModelChange()">
-          </div>
-        </div>
-        <div class="row" style="font-size:12px;color:var(--text3)">
-          Claude 선택 시 더 정확한 분석이 가능하지만 API 비용이 발생합니다.
         </div>
       </div>
 
@@ -370,84 +378,105 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
           <span class="row-label">답변 방식</span>
           <select id="ai-style" onchange="localStorage.setItem('ai-style',this.value)" style="font-size:13px;padding:6px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text)">
             <option value="balanced">균형형 (기본)</option>
-            <option value="direct">직설형 — 핵심만 단도직입</option>
-            <option value="detail">상세형 — 근거와 배경 포함</option>
+            <option value="direct">직설형 — 핵심만</option>
+            <option value="detail">상세형 — 근거 포함</option>
           </select>
-        </div>
-        <div class="row" style="font-size:12px;color:var(--text3)">
-          직설형: "지금 사도 됩니까?" 같은 질문에 명확한 의견 제시<br>
-          상세형: 근거·배경·리스크까지 자세히 설명
         </div>
       </div>
 
-      <!-- 차트 분석 설정 -->
+      <!-- 차트 분석 중점 -->
       <div class="card">
         <div class="card-label">차트 분석 중점</div>
         <div class="row">
           <span class="row-label">분석 중점</span>
           <select id="chart-focus" onchange="localStorage.setItem('chart-focus',this.value)" style="font-size:13px;padding:6px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text)">
             <option value="all">종합 (기본)</option>
-            <option value="pattern">패턴 위주 — 지지/저항, 차트패턴</option>
-            <option value="ma">이동평균 위주 — 골든크로스, 정배열</option>
-            <option value="volume">거래량 위주 — 세력, 매집/분산</option>
+            <option value="pattern">패턴 위주</option>
+            <option value="ma">이동평균 위주</option>
+            <option value="volume">거래량 위주</option>
           </select>
         </div>
       </div>
 
-      <!-- 손익 알림 설정 -->
+      <!-- 손익 알림 -->
       <div class="card">
         <div class="card-label">손익 알림</div>
         <div class="row">
-          <span class="row-label">손익 알림 사용</span>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="alert-enabled" onchange="onAlertToggle()" style="width:18px;height:18px;cursor:pointer">
-            <span id="alert-enabled-label" style="font-size:14px;color:var(--text3)">사용 안 함</span>
-          </label>
+          <span class="row-label">알림 사용</span>
+          <label class="toggle"><input type="checkbox" id="alert-enabled" onchange="onAlertToggle(this)"><span class="toggle-slider"></span></label>
         </div>
-
-        <!-- 알림 ON일 때만 표시 -->
         <div id="alert-options" style="display:none">
           <div class="row">
-            <span class="row-label">일괄 설정</span>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="alert-bulk" onchange="onBulkToggle()" style="width:18px;height:18px;cursor:pointer">
-              <span id="alert-bulk-label" style="font-size:14px;color:var(--text3)">종목별 개별 설정</span>
-            </label>
+            <span class="row-label">적용 방식</span>
+            <label class="toggle"><input type="checkbox" id="alert-bulk" onchange="onBulkToggle(this)"><span class="toggle-slider"></span></label>
+            <span id="alert-bulk-label" style="font-size:12px;color:var(--text3);margin-left:8px">종목별 개별 설정</span>
           </div>
-
-          <!-- 일괄 설정 ON일 때 -->
-          <div id="bulk-inputs" style="display:none">
-            <div class="row">
-              <span class="row-label">🟢 익절 기준</span>
-              <div style="display:flex;align-items:center;gap:4px">
-                <input type="number" id="bulk-profit" value="15" min="1" max="100"
-                  style="width:60px;border:1px solid var(--border2);border-radius:8px;padding:6px;font-size:14px;text-align:right;background:var(--bg2);color:var(--text)">
-                <span style="font-size:14px;color:var(--text3)">%</span>
+          <div id="bulk-inputs" style="display:none;padding:0 16px 12px">
+            <div style="display:flex;gap:12px">
+              <div style="flex:1">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">🟢 익절 기준 (%)</div>
+                <input id="bulk-profit" type="number" placeholder="예: 20" style="width:100%;padding:6px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px">
+              </div>
+              <div style="flex:1">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">🔴 손절 기준 (%)</div>
+                <input id="bulk-loss" type="number" placeholder="예: 10" style="width:100%;padding:6px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px">
               </div>
             </div>
-            <div class="row">
-              <span class="row-label">🔴 손절 기준</span>
-              <div style="display:flex;align-items:center;gap:4px">
-                <input type="number" id="bulk-loss" value="10" min="1" max="100"
-                  style="width:60px;border:1px solid var(--border2);border-radius:8px;padding:6px;font-size:14px;text-align:right;background:var(--bg2);color:var(--text)">
-                <span style="font-size:14px;color:var(--text3)">%</span>
-              </div>
-            </div>
-            <div class="row">
-              <button onclick="applyBulkAlert()" style="width:100%;padding:12px;border-radius:10px;background:var(--info);color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
-                전 종목에 적용
-              </button>
-            </div>
+            <button onclick="applyBulkAlert()" style="margin-top:8px;width:100%;padding:8px;border-radius:10px;border:none;background:var(--info);color:#fff;font-size:13px;font-weight:600;cursor:pointer">적용</button>
           </div>
         </div>
       </div>
 
-    </div>
+      <!-- 예수금 -->
+      <div class="card">
+        <div class="card-label">예수금</div>
+        <div class="cash-row">
+          <span class="row-label">예수금 (원)</span>
+          <input type="number" id="cash-input" placeholder="예: 3000000"
+            style="width:140px;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;text-align:right"
+            onchange="localStorage.setItem('cash', this.value); fetchPortfolio()">
+        </div>
+      </div>
 
+    </div>
   </div>
 </div>
 
-<!-- ═══ SCREEN 2: 브리핑 ═══ -->
+<!-- ═══ SCREEN 2: 보유자산 추세 ═══ -->
+<div class="screen" id="screen-trend">
+  <!-- 포트폴리오 차트 -->
+  <div class="portfolio-wrap">
+    <div class="portfolio-controls">
+      <div class="portfolio-control">
+        <label>기준일</label>
+        <input type="date" id="chart-base-date" onchange="drawPortfolioChart()">
+      </div>
+      <div class="portfolio-control">
+        <label>표시</label>
+        <select id="chart-stock-select" onchange="drawPortfolioChart()">
+          <option value="total">내 총액(가상)</option>
+        </select>
+      </div>
+    </div>
+    <div class="portfolio-header">
+      <div class="portfolio-legend">
+        <span><span style="color:#FF3B30">━</span> <span id="legend-my">내 총액</span></span>
+        <span><span style="color:#007AFF">━</span> 코스피</span>
+        <span><span style="color:#34C759">━</span> 코스닥</span>
+      </div>
+      <button class="analyze-btn" onclick="analyzePortfolioChart()">AI 분석 💬</button>
+    </div>
+    <div style="position:relative;height:130px"><canvas id="portfolio-canvas"></canvas></div>
+    <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
+    <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:2px">* 현재 보유종목을 기간 내내 보유했다고 가정한 가상 수치</div>
+  </div>
+  <!-- AI 분석 결과 -->
+  <div class="panel-scroll" id="trend-analysis">
+    <div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">AI 분석 버튼을 탭하면 포트폴리오를 분석해드립니다</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 3: 브리핑 ═══ -->
 <div class="screen" id="screen-briefing">
   <div class="macro-bar">
     <div class="ticker-wrap">
@@ -456,6 +485,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
       </div>
     </div>
   </div>
+  <!-- 공시/뉴스 게시판 -->
   <div class="board-header">
     <span class="board-title">📋 공시 · 뉴스 <span style="font-size:11px;font-weight:400;color:var(--text3)">7일</span></span>
     <div class="board-filters">
@@ -467,156 +497,75 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
   <div class="board-list" id="board-list">
     <div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>
   </div>
-  <div class="tab-strip" id="time-tabs">
+  <!-- 시간대 탭 -->
+  <div class="time-tabs" id="time-tabs">
     <button class="tab-chip" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
     <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">🌙 프리마켓</button>
     <button class="tab-chip" onclick="setTimeTab(this,'오전장')">☀️ 오전장</button>
     <button class="tab-chip" onclick="setTimeTab(this,'오후장')">🌤 오후장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">🌆 애프터</button>
+    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">🌙 애프터마켓</button>
   </div>
-  <div class="token-bar">
-    <b>입력</b><span id="tb-in">0</span>tok
-    <b>출력</b><span id="tb-out">0</span>tok
-    <b>호출</b><span id="tb-calls">0</span>회
-    <span class="token-cost" id="tb-cost">$0.000</span>
-  </div>
+  <!-- 채팅 -->
   <div class="chat-wrap">
-    <div class="chat-area" id="chat-briefing">
-    <div class="msg system">시간대 탭을 선택하면 브리핑이 시작됩니다</div>
-  </div>
+    <div class="chat-area" id="chat-briefing"></div>
+    <div class="token-bar">
+      <b>입력</b><span id="tb-in">0</span>tok
+      <b>출력</b><span id="tb-out">0</span>tok
+      <b>호출</b><span id="tb-calls">0</span>회
+      <span class="token-cost" id="tb-cost">$0.000</span>
+    </div>
     <div class="input-bar">
       <div class="img-preview-row" id="prev-briefing"></div>
       <div class="input-row">
         <button class="icon-btn" onclick="triggerFile('file-briefing')">📎</button>
         <textarea id="inp-briefing" placeholder="브리핑 관련 질문..." rows="1"
-          onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)" onpaste="handlePaste(event,'briefing')"></textarea>
+          onkeydown="handleKey(event,'briefing')" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="send-briefing" onclick="sendMsg('briefing')">↑</button>
       </div>
-      <input type="file" id="file-briefing" accept="image/*" multiple style="display:none" >
     </div>
+    <input type="file" id="file-briefing" accept="image/*" multiple style="display:none">
   </div>
 </div>
 
-<!-- ═══ SCREEN 3: 차트분석 ═══ -->
+<!-- ═══ SCREEN 4: 차트분석 ═══ -->
 <div class="screen" id="screen-chart">
-
-  <!-- 포트폴리오 비교 차트 -->
-  <div style="flex-shrink:0;background:var(--bg1);border-bottom:.5px solid var(--border);padding:10px 12px;overflow:hidden">
-    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
-      <div style="flex:1">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">기준일</div>
-        <input type="date" id="chart-base-date"
-          style="width:100%;font-size:12px;padding:4px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
-          onchange="drawPortfolioChart()">
-      </div>
-      <div style="flex:1">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">표시</div>
-        <select id="chart-stock-select"
-          style="width:100%;font-size:12px;padding:4px 8px;border-radius:8px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit"
-          onchange="drawPortfolioChart()">
-          <option value="total">내 총액(가상)</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <span style="font-size:11px;color:var(--text3)">📊 60일 비교 (기준일=100)</span>
-      <div style="display:flex;gap:8px;font-size:10px">
-        <span><span style="color:#FF3B30">━</span> <span id="legend-my">내 총액</span></span>
-        <span><span style="color:#007AFF">━</span> 코스피</span>
-        <span><span style="color:#34C759">━</span> 코스닥</span>
-      </div>
-    </div>
-    <div style="position:relative;height:130px"><canvas id="portfolio-canvas"></canvas></div>
-    <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-      <div style="font-size:10px;color:var(--text3);opacity:0.6">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
-      <button onclick="analyzePortfolioChart()" style="font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--info-bg);color:var(--info);cursor:pointer;font-family:inherit">AI 분석 💬</button>
-    </div>
-  </div>
-
-  <div class="token-bar">
-    <b>입력</b><span id="tc-in">0</span>tok
-    <b>출력</b><span id="tc-out">0</span>tok
-    <b>호출</b><span id="tc-calls">0</span>회
-    <span class="token-cost" id="tc-cost">$0.000</span>
-  </div>
   <div class="chat-wrap">
     <div class="chat-area" id="chat-chart"></div>
+    <div class="token-bar">
+      <b>입력</b><span id="tc-in">0</span>tok
+      <b>출력</b><span id="tc-out">0</span>tok
+      <b>호출</b><span id="tc-calls">0</span>회
+      <span class="token-cost" id="tc-cost">$0.000</span>
+    </div>
     <div class="input-bar">
       <div class="img-preview-row" id="prev-chart"></div>
       <div class="input-row">
         <button class="icon-btn" onclick="triggerFile('file-chart')">📎</button>
         <textarea id="inp-chart" placeholder="이미지 첨부 또는 질문..." rows="1"
-          onkeydown="handleKey(event,'chart')" oninput="autoResize(this)" onpaste="handlePaste(event,'chart')"></textarea>
+          onkeydown="handleKey(event,'chart')" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="send-chart" onclick="sendMsg('chart')">↑</button>
       </div>
-      <input type="file" id="file-chart" accept="image/*" multiple style="display:none" >
     </div>
+    <input type="file" id="file-chart" accept="image/*" multiple style="display:none">
   </div>
 </div>
-
-<!-- ═══ SCREEN 4: 종목발굴 ═══ -->
-<div class="screen" id="screen-discovery">
-  <div class="tab-strip" id="disc-tabs">
-    <button class="tab-chip" onclick="toggleDiscType(this,'전체')">전체</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'대형주')">🏢 대형주</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'대장주')">🥇 대장주</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'우량주')">⭐ 우량주</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'배당주')">💰 배당주</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'턴어라운드')">🔄 턴어라운드</button>
-    <button class="tab-chip" onclick="toggleDiscType(this,'테마주')">🔥 테마주</button>
-  </div>
-  <div class="token-bar">
-    <b>입력</b><span id="td-in">0</span>tok
-    <b>출력</b><span id="td-out">0</span>tok
-    <b>호출</b><span id="td-calls">0</span>회
-    <span class="token-cost" id="td-cost">$0.000</span>
-  </div>
-  <div class="chat-wrap">
-    <div class="chat-area" id="chat-discovery">
-      <div class="msg system">탐색할 유형을 선택하고 '다음 ▶'을 누르세요<br>복수 선택 시 OR 조건으로 탐색 · 전체 = 모든 유형 선택</div>
-    </div>
-    <div class="step-bottom">
-      <div class="step-nodes">
-        <div class="step-node"><div class="step-circle active" id="sc1">1</div><span>유형</span></div>
-        <div class="step-line" id="sl1"></div>
-        <div class="step-node"><div class="step-circle" id="sc2">2</div><span>추출</span></div>
-        <div class="step-line" id="sl2"></div>
-        <div class="step-node"><div class="step-circle" id="sc3">3</div><span>원인</span></div>
-        <div class="step-line" id="sl3"></div>
-        <div class="step-node"><div class="step-circle" id="sc4">4</div><span>해소</span></div>
-        <div class="step-line" id="sl4"></div>
-        <div class="step-node"><div class="step-circle" id="sc5">5</div><span>순위</span></div>
-      </div>
-      <div class="step-nav-row">
-        <button class="step-nav-btn" id="btn-prev" onclick="goStep(-1)" disabled>◀ 이전</button>
-        <button class="step-nav-btn primary" id="btn-next" onclick="onNextBtn()" disabled>다음 ▶</button>
-      </div>
-    </div>
-    <div class="input-bar">
-      <div class="input-row">
-        <textarea id="inp-discovery" placeholder="이 단계 관련 질문..." rows="1"
-          onkeydown="handleKey(event,'discovery')" oninput="autoResize(this)"></textarea>
-        <button class="send-btn" id="send-discovery" onclick="sendMsg('discovery')">↑</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" onclick="switchScreen('info',this)"><span class="nav-icon">👤</span>내 정보</button>
+  <button class="nav-btn" onclick="switchScreen('trend',this)"><span class="nav-icon">📈</span>자산추세</button>
   <button class="nav-btn" onclick="switchScreen('briefing',this)"><span class="nav-icon">📰</span>브리핑</button>
   <button class="nav-btn" onclick="switchScreen('chart',this)"><span class="nav-icon">📊</span>차트분석</button>
-  <button class="nav-btn" onclick="switchScreen('discovery',this)"><span class="nav-icon">🔍</span>종목발굴</button>
 </nav>
 
-<!-- MODAL (종목 추가/수정) -->
-<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h3 id="modal-title">종목 추가</h3>
+<!-- MODAL -->
+<div id="modal" style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center">
+  <div class="modal-bg" onclick="closeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-title-row">
+      <span id="modal-title" class="modal-title">종목 추가</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
     <div class="modal-field"><label>종목명</label><input id="m-name" placeholder="예: 삼성전자"></div>
     <div class="modal-field"><label>종목코드 <span style="font-size:11px;color:var(--text3)">(선택 · 우선주·ETF는 필수)</span></label><input id="m-code" placeholder="예: 005930" maxlength="6"></div>
     <div class="modal-field"><label>수량 (주)</label><input id="m-qty" type="number" placeholder="예: 100"></div>
@@ -624,22 +573,22 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div style="display:flex;gap:10px">
       <div class="modal-field" style="flex:1">
         <label>🟢 익절 기준 (%)</label>
-        <input id="m-profit" type="number" placeholder="예: 15" min="1" max="200">
+        <input id="m-profit" type="number" placeholder="예: 20" min="1" max="200">
       </div>
       <div class="modal-field" style="flex:1">
         <label>🔴 손절 기준 (%)</label>
         <input id="m-loss" type="number" placeholder="예: 10" min="1" max="200">
       </div>
     </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">취소</button>
-      <button class="btn-confirm" id="modal-confirm" onclick="confirmStock()">추가</button>
+    <div style="display:flex;gap:10px;padding:12px 16px">
+      <button class="modal-cancel" onclick="closeModal()">취소</button>
+      <button class="modal-confirm" id="modal-confirm" onclick="confirmStock()">추가</button>
     </div>
   </div>
 </div>
 
-
 <script>
+
 // ── 설정 ──
 const API = '/api/chat';
 const MODEL = 'claude-sonnet-4-20250514';
@@ -798,42 +747,7 @@ function setTimeTab(btn, label) {
 }
 
 // ── Discovery tabs (multi-select) ──
-function toggleDiscType(btn, label) {
-  const allBtns = document.querySelectorAll('#disc-tabs .tab-chip');
-  const allTypes = ['대형주','대장주','우량주','배당주','턴어라운드','테마주'];
 
-  if (label === '전체') {
-    // 전체 탭: 이미 다 선택된 상태면 전체 해제, 아니면 전체 선택
-    const allSelected = allTypes.every(t => selectedDiscTypes.has(t));
-    if (allSelected) {
-      selectedDiscTypes.clear();
-      allBtns.forEach(b=>b.classList.remove('active'));
-    } else {
-      selectedDiscTypes.clear();
-      allTypes.forEach(t=>selectedDiscTypes.add(t));
-      allBtns.forEach(b=>b.classList.add('active'));
-    }
-  } else {
-    // 개별 탭 토글
-    if (btn.classList.contains('active')) {
-      btn.classList.remove('active');
-      selectedDiscTypes.delete(label);
-    } else {
-      btn.classList.add('active');
-      selectedDiscTypes.add(label);
-    }
-    // 전체 탭 상태 업데이트
-    const allSelected = allTypes.every(t => selectedDiscTypes.has(t));
-    const firstBtn = document.querySelector('#disc-tabs .tab-chip');
-    if (allSelected) firstBtn.classList.add('active');
-    else firstBtn.classList.remove('active');
-  }
-
-  // 자동 실행 안 함 — 다음 버튼 활성화만
-  histories.discovery=[]; document.getElementById('chat-discovery').innerHTML='';
-  curStep=0; updateStepUI();
-  document.getElementById('btn-next').disabled = selectedDiscTypes.size===0;
-}
 
 // ── News ──
 async function fetchNews() {
@@ -1021,99 +935,13 @@ ${macroOnly}`;
 // ── Discovery Steps ──
 const STEP_LABELS = ['','유형 선택','저평가주 추출','원인 분석','해소 조건','투자 순위'];
 
-function getStepPrompt(step) {
-  const types = [...selectedDiscTypes].join('·') || '전체(대형주·대장주·우량주·배당주·턴어라운드·테마주)';
-  const style = document.getElementById('style')?.value||'중립형';
-  const snames = ''; // 종목발굴은 보유종목과 무관하게 시장 전체 기준
-  const prompts = {
-    1:`[1단계] 탐색 유형: ${types}
-규칙: 마크다운 금지. 인사말 금지. 5줄 이내.
-1줄: 이 유형이 입문자에게 왜 상대적으로 안전한지
-2줄: 저평가 판단 핵심 기준 (PBR/PER/배당률 등 유형별)
-3줄: 반드시 피해야 할 위험 신호`,
 
-    2:`[2단계] 유형: ${types} — 전 섹터 저평가 후보 추출
-규칙: 마크다운 금지. 인사말/서두 금지. 목록만. 설명 문장 금지.
-형식(이것만):
-섹터: 종목명 — 저평가수준(상/중/하) — 이유 한줄
-(6~8개, 투기성 소형주 제외)`,
 
-    3:`[3단계] 저평가 원인 분석
-규칙: 마크다운 금지. 인사말/서두 금지. 목록만. 설명 문장 금지.
-형식(이것만):
-종목명: [원인유형] 한줄설명
-원인유형: ①실적부진 ②업황침체 ③수급악화 ④일시악재 ⑤시장미반영`,
+async 
 
-    4:`[4단계] 해소 조건 분석
-규칙: 마크다운 금지. 인사말/서두 금지. 목록만. 설명 문장 금지.
-형식(이것만):
-종목명: 해소조건 — 확인방법
-마지막 1줄만: 소문에 사고 뉴스에 파는 이유`,
 
-    5:`[5단계] 투자 우선순위 (성향: ${style})
-규칙: 마크다운 금지. 인사말/서두 금지.
-형식(이것만):
-1순위: 종목명 — 이유 — 진입 시점 조건
-2순위: 종목명 — 이유 — 진입 시점 조건
-3순위: 종목명 — 이유 — 진입 시점 조건
-마지막 1줄: ⚠️ AI 참고 의견. 최종 판단과 책임은 본인에게 있습니다.`
-  };
-  return prompts[step];
-}
 
-async function executeStep(step) {
-  if (step<1||step>5) return;
-  curStep=step; updateStepUI();
 
-  // 히스토리 압축: 이전 단계 대화를 요약으로 교체
-  if(step > 1) {
-    // 이전 단계들의 요약만 남기고 히스토리 초기화
-    const summaryContext = Object.entries(stepSummaries)
-      .filter(([k])=>parseInt(k)<step)
-      .map(([k,v])=>'['+k+'단계 결과] '+v)
-      .join('\n');
-
-    // 히스토리를 요약 컨텍스트로 리셋
-    histories.discovery = summaryContext ? [
-      {role:'user', content: '이전 단계 요약:\n'+summaryContext+'\n\n위 내용을 바탕으로 계속합니다.'},
-      {role:'assistant', content: '이전 분석 내용을 확인했습니다. 계속하겠습니다.'}
-    ] : [];
-  } else {
-    // 1단계 시작 시 히스토리 초기화
-    histories.discovery = [];
-    stepSummaries = {};
-  }
-
-  addMsg('discovery','step-badge',`📍 ${step}단계 · ${STEP_LABELS[step]}`);
-  await callClaude('discovery', getStepPrompt(step), true);
-}
-function onNextBtn() {
-  if (curStep === 0) {
-    // 아직 시작 전 — 1단계 실행
-    executeStep(1);
-  } else {
-    // 진행 중 — 다음 단계
-    goStep(1);
-  }
-}
-
-function goStep(dir) {
-  const next = curStep+dir;
-  if (next>=1&&next<=5) executeStep(next);
-}
-function updateStepUI() {
-  for (let i=1;i<=5;i++) {
-    const c=document.getElementById('sc'+i);
-    const l=document.getElementById('sl'+i);
-    if(i<curStep){c.className='step-circle done';if(l)l.className='step-line done'}
-    else if(i===curStep){c.className='step-circle active';if(l)l.className='step-line'}
-    else{c.className='step-circle';if(l)l.className='step-line'}
-  }
-  document.getElementById('btn-prev').disabled = curStep<=1;
-  const nb=document.getElementById('btn-next');
-  nb.disabled = curStep>=5;
-  nb.textContent = curStep>=5?'✓ 완료':'다음 ▶';
-}
 
 // ── Chat UI ──
 function addMsg(screen, role, text) {
@@ -1288,7 +1116,16 @@ function sendMsg(screen){
   const imgs=pendingImgs[screen]||[];
   if(!text&&imgs.length===0)return;
   if(inp){inp.value='';inp.style.height='auto';}
-  callClaude(screen,text);
+  // 차트분석은 듀얼 AI
+  if(screen==='chart') {
+    addMsg('chart','user',text||'차트 분석해줘');
+    sendDualAI(imgs, text);
+    pendingImgs['chart']=[];
+    const prev=document.getElementById('prev-chart');
+    if(prev){prev.innerHTML='';prev.style.display='none';}
+  } else {
+    callClaude(screen,text);
+  }
 }
 
 // ── Images ──
@@ -1549,6 +1386,7 @@ function loadAlertSettings() {
   const chartFocus = localStorage.getItem('chart-focus') || 'all';
   const chartFocusEl = document.getElementById('chart-focus');
   if(chartFocusEl) chartFocusEl.value = chartFocus;
+  loadCash();
 }
 
 // ── 종목 경고 체크 ──
@@ -1576,311 +1414,22 @@ async function fetchStockAlert() {
 // ── 포트폴리오 차트 ──
 let portfolioData = null;
 
-async function fetchPortfolio() {
-  if(stocks.length === 0) return;
-  const sel = document.getElementById('chart-stock-select');
-  if(sel) {
-    const prev = sel.value;
-    sel.innerHTML = '<option value="total">내 총액(가상)</option>';
-    stocks.forEach(s => {
-      const o = document.createElement('option');
-      o.value = s.name; o.textContent = s.name;
-      sel.appendChild(o);
-    });
-    sel.value = prev || 'total';
-  }
-  const st = document.getElementById('portfolio-status');
-  if(st) st.textContent = '불러오는 중...';
-  const stocksWithCode = stocks.map(s => ({
-    name: s.name, qty: s.qty,
-    stockCode: s.stockCode || alertData[s.name]?.stockCode || null
-  }));
-  fetch('/api/portfolio', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({stocks: stocksWithCode})
-  }).then(r=>r.json()).then(d=>{
-    portfolioData = d;
-    // 날짜 기본값: rawDates 첫번째 날짜
-    const dateInput = document.getElementById('chart-base-date');
-    if(dateInput && !dateInput.value && d.rawDates?.length) {
-      dateInput.value = d.rawDates[0];
-    }
-    drawPortfolioChart();
-  }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
-}
+async 
 
-function drawPortfolioChart() {
-  if(!portfolioData) return;
 
-  const { dates, rawDates, kospi, kosdaq, portfolio, individual } = portfolioData;
-  const sel = document.getElementById('chart-stock-select')?.value || 'total';
-  const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
-  const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
 
-  const lEl = document.getElementById('legend-my');
-  if(lEl) lEl.textContent = myLabel;
 
-  // 마지막 데이터 제외 (급락 방지)
-  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
-  if(N < 2) return;
 
-  // 기준일 인덱스
-  const baseDate = document.getElementById('chart-base-date')?.value || '';
-  let bi = 0;
-  if(baseDate && rawDates) {
-    for(let i=0; i<N; i++) {
-      if(rawDates[i] && rawDates[i] >= baseDate) { bi = i; break; }
-    }
-  }
-
-  // 정규화
-  const norm = (arr) => {
-    if(!arr || arr.length < 1) return Array(N).fill(null);
-    const base = arr[bi];
-    if(!base) return Array(N).fill(null);
-    return Array.from({length:N}, (_,i) => {
-      const v = arr[i];
-      return v != null ? Math.round(v/base*1000)/10 : null;
-    });
-  };
-
-  // 유효한 마지막 인덱스 (trailing null 제거)
-  const lastValidIdx = (arr) => {
-    for(let i=N-1; i>=0; i--) if(arr && arr[i] != null) return i;
-    return N-1;
-  };
-
-  const rK = norm(kospi);
-  const rQ = norm(kosdaq);
-  const rM = norm(myRaw);
-
-  // 가장 짧은 유효 길이로 통일
-  const validN = Math.min(lastValidIdx(rK), lastValidIdx(rQ), lastValidIdx(rM)) + 1;
-  const trimmedDates = (dates||[]).slice(0, validN);
-  const trimmedK = rK.slice(0, validN);
-  const trimmedQ = rQ.slice(0, validN);
-  const trimmedM = rM.slice(0, validN);
-
-  // 하단 수치
-  const last = (arr) => { for(let i=N-1;i>=0;i--) if(arr&&arr[i]!=null) return arr[i]; return null; };
-  const fmt = v => v!=null ? (v>=100?'+':'')+(v-100).toFixed(1)+'%' : '-';
-  const st = document.getElementById('portfolio-status');
-  if(st) {
-    let h = '';
-    const lM=last(trimmedM), lK=last(trimmedK), lQ=last(trimmedQ);
-    if(lM!=null) h += '<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
-    h += '<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
-    h += '<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
-    st.innerHTML = h;
-  }
-
-  const canvas = document.getElementById('portfolio-canvas');
-  if(!canvas) return;
-
-  // 기존 차트 제거
-  if(window._portfolioChart) { window._portfolioChart.destroy(); window._portfolioChart = null; }
-
-  // 기준일 수직선 플러그인
-  const baseLinePlugin = {
-    id: 'baseLine',
-    afterDraw(chart) {
-      if(bi <= 0) return;
-      const ctx2 = chart.ctx;
-      const xScale = chart.scales.x;
-      const yScale = chart.scales.y;
-      const x = xScale.getPixelForValue(bi);
-      ctx2.save();
-      ctx2.strokeStyle = 'rgba(200,200,200,0.7)';
-      ctx2.lineWidth = 1.5;
-      ctx2.setLineDash([4, 4]);
-      ctx2.beginPath();
-      ctx2.moveTo(x, yScale.top);
-      ctx2.lineTo(x, yScale.bottom);
-      ctx2.stroke();
-      ctx2.setLineDash([]);
-      // 날짜 레이블
-      const label = trimmedDates[bi] || '';
-      ctx2.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx2.font = 'bold 9px sans-serif';
-      ctx2.textAlign = 'center';
-      const tw = ctx2.measureText(label).width;
-      ctx2.fillRect(x - tw/2 - 3, yScale.top, tw + 6, 14);
-      ctx2.fillStyle = '#333';
-      ctx2.fillText(label, x, yScale.top + 10);
-      ctx2.restore();
-    }
-  };
-
-  window._portfolioChart = new Chart(canvas, {
-    type: 'line',
-    plugins: [baseLinePlugin],
-    data: {
-      labels: trimmedDates,
-      datasets: [
-        {
-          label: myLabel,
-          data: trimmedM,
-          borderColor: '#FF3B30',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.2,
-          spanGaps: true
-        },
-        {
-          label: '코스피',
-          data: trimmedK,
-          borderColor: '#007AFF',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.2,
-          spanGaps: true
-        },
-        {
-          label: '코스닥',
-          data: trimmedQ,
-          borderColor: '#34C759',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.2,
-          spanGaps: true
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': ' + (ctx.raw != null ? (ctx.raw-100).toFixed(1)+'%' : '-')
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: {
-            font: { size: 9 },
-            color: 'rgba(128,128,128,0.7)',
-            maxTicksLimit: 6,
-            maxRotation: 0
-          },
-          grid: { color: 'rgba(128,128,128,0.1)' }
-        },
-        y: {
-          ticks: {
-            font: { size: 9 },
-            color: 'rgba(128,128,128,0.7)',
-            callback: v => v.toFixed(1)
-          },
-          grid: { color: 'rgba(128,128,128,0.1)' }
-        }
-      }
-    }
-  });
-}
-
-function analyzePortfolioChart() {
-  if(!portfolioData) return;
-
-  const { dates, rawDates, kospi, kosdaq, portfolio } = portfolioData;
-  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
-  if(N < 2) return;
-
-  const baseDate = document.getElementById('chart-base-date')?.value || '';
-  let bi = 0;
-  if(baseDate && rawDates) {
-    for(let i=0; i<N; i++) {
-      if(rawDates[i] && rawDates[i] >= baseDate) { bi = i; break; }
-    }
-  }
-
-  const norm = (arr) => {
-    const base = arr[bi];
-    if(!base) return null;
-    return Math.round((arr[N-1] / base - 1) * 1000) / 10;
-  };
-
-  const pChg = norm(portfolio);
-  const kChg = norm(kospi);
-  const qChg = norm(kosdaq);
-
-  // 구간별 분석
-  const mid = Math.floor((N + bi) / 2);
-  const pMid = portfolio[mid] ? Math.round((portfolio[mid]/portfolio[bi]-1)*1000)/10 : null;
-  const kMid = kospi[mid] ? Math.round((kospi[mid]/kospi[bi]-1)*1000)/10 : null;
-
-  const startDate = dates[bi] || '';
-  const endDate = dates[N-1] || '';
-
-  const analysisCtx = `
-[차트 분석 데이터 — 가상 시나리오 기반]
-※ 중요: 이 수치는 현재 보유종목을 기간 내내 동일하게 보유했다고 가정한 가상 수치입니다.
-실제 매수/매도 시점과 수량이 다르므로 실제 수익률과 차이가 있을 수 있습니다.
-분석 시 이 전제를 반드시 고려하고 사용자에게도 명시해주세요.
-
-기간: ${startDate} ~ ${endDate}
-현재 보유종목(가상 기준): ${stocks.map(s=>s.name).join(', ')}
-내 총액(가상): ${pChg != null ? (pChg>=0?'+':'')+pChg+'%' : '데이터없음'}
-코스피: ${kChg != null ? (kChg>=0?'+':'')+kChg+'%' : '데이터없음'}
-코스닥: ${qChg != null ? (qChg>=0?'+':'')+qChg+'%' : '데이터없음'}
-전반부(${startDate}~${dates[mid]||''}): 내총액(가상) ${pMid!=null?(pMid>=0?'+':'')+pMid+'%':'?'} / 코스피 ${kMid!=null?(kMid>=0?'+':'')+kMid+'%':'?'}
-
-위 가상 데이터를 바탕으로 입문자 관점에서:
-1. 가상 포트폴리오가 지수 대비 어떤 흐름을 보였는지
-2. 어느 구간에서 지수를 앞서거나 뒤처졌는지
-3. 현재 보유종목 구성에 대한 조언 (가상 수치 기반임을 전제로)
-를 직설적으로 해설해줘.`;
-
-  // 브리핑 화면으로 이동해서 AI 분석
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('screen-briefing').classList.add('active');
-  document.querySelectorAll('.nav-btn')[1].classList.add('active');
-
-  // 채팅에 분석 요청
-  const area = document.getElementById('chat-briefing');
-  const div = document.createElement('div');
-  div.className = 'msg user';
-  div.textContent = '내 포트폴리오 차트 분석해줘';
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-
-  callClaude('briefing', analysisCtx);
-}
-
-function onChartControlChange() {
-  if(portfolioData) drawPortfolioChart();
-}
-
-function updateChartStockSelect() {
-  const sel = document.getElementById('chart-stock-select');
-  if(!sel) return;
-  const prev = sel.value;
-  sel.innerHTML = '<option value="total">내 총액(가상)</option>';
-  stocks.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.name;
-    opt.textContent = s.name;
-    sel.appendChild(opt);
-  });
-  if(prev) sel.value = prev;
-}
 
 
 // ── Init ──
 renderStocks();
-updateStepUI();
 fetchMacro();
 fetchNews();
 loadAlertSettings();
 fetchStockAlert();
-fetchPortfolio();
 
-// 파일 input 이벤트 — 모바일 호환성
+// 파일 input 이벤트 — 모바일 호환성을 위해 addEventListener 사용
 (function() {
   const fi = document.getElementById('file-info');
   if(fi) {
@@ -1904,7 +1453,356 @@ fetchPortfolio();
     fc.addEventListener('click', function() { this.value = ''; });
   }
 })();
+
+
+// ── 예수금 ──
+function loadCash() {
+  const cash = localStorage.getItem('cash') || '';
+  const el = document.getElementById('cash-input');
+  if(el) el.value = cash;
+}
+
+// ── 보유자산 추세 AI 분석 ──
+function analyzePortfolioChart() {
+  if(!portfolioData) return;
+  const { dates, rawDates, kospi, kosdaq, portfolio } = portfolioData;
+  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
+  if(N < 2) return;
+
+  const baseDate = document.getElementById('chart-base-date')?.value || '';
+  let bi = 0;
+  if(baseDate && rawDates) {
+    for(let i=0; i<N; i++) {
+      if(rawDates[i] && rawDates[i] >= baseDate) { bi = i; break; }
+    }
+  }
+
+  const chg = (arr) => {
+    const base = arr[bi]; const last = arr[N-1];
+    if(!base || !last) return null;
+    return Math.round((last/base-1)*1000)/10;
+  };
+
+  const pChg = chg(portfolio), kChg = chg(kospi), qChg = chg(kosdaq);
+  const mid = Math.floor((N+bi)/2);
+  const pMid = portfolio[mid]&&portfolio[bi] ? Math.round((portfolio[mid]/portfolio[bi]-1)*1000)/10 : null;
+  const kMid = kospi[mid]&&kospi[bi] ? Math.round((kospi[mid]/kospi[bi]-1)*1000)/10 : null;
+
+  const fmt = v => v!=null ? (v>=0?'+':'')+v+'%' : '?';
+  const cash = parseInt(localStorage.getItem('cash')) || 0;
+
+  const ctx = `[포트폴리오 차트 분석 — 가상 시나리오]
+※ 현재 보유종목을 기간 내내 동일하게 보유했다고 가정한 가상 수치입니다. 실제 수익률과 다를 수 있습니다.
+
+기간: ${(dates||[])[bi]||''} ~ ${(dates||[])[N-1]||''}
+보유종목: ${stocks.map(s=>s.name).join(', ')}
+${cash ? '예수금: ' + cash.toLocaleString() + '원' : ''}
+
+전체 기간 성과:
+- 내 총액(가상): ${fmt(pChg)}
+- 코스피: ${fmt(kChg)}
+- 코스닥: ${fmt(qChg)}
+
+전반부 성과(~${(dates||[])[mid]||''}):
+- 내 총액: ${fmt(pMid)} / 코스피: ${fmt(kMid)}
+
+위 가상 데이터를 바탕으로:
+1. 포트폴리오가 지수 대비 어떤 흐름을 보였는지
+2. 어느 구간에서 지수를 앞서거나 뒤처졌는지
+3. 현재 보유종목 구성에 대한 조언
+을 직설적으로 해설해줘. 가상 수치임을 먼저 언급해줘.`;
+
+  const area = document.getElementById('trend-analysis');
+  if(area) {
+    area.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text3)">분석 중...</div>';
+  }
+
+  // AI 호출 - trend 화면용
+  callClaudeTrend(ctx);
+}
+
+async function callClaudeTrend(prompt) {
+  const area = document.getElementById('trend-analysis');
+  const MODEL = getSelectedModel();
+  const apiEndpoint = MODEL === 'claude' ? '/api/chat-claude' : '/api/chat';
+
+  try {
+    const res = await fetch(apiEndpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: MODEL, max_tokens: 1000,
+        system: getSysPrompt('briefing'),
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+
+    if(!res.ok) throw new Error('API 오류');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    if(area) area.innerHTML = '<div style="padding:12px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap" id="trend-result"></div>';
+    const resultEl = document.getElementById('trend-result');
+
+    while(true) {
+      const {done, value} = await reader.read();
+      if(done) break;
+      const lines = decoder.decode(value).split('\n');
+      for(const line of lines) {
+        if(!line.startsWith('data:')) continue;
+        try {
+          const p = JSON.parse(line.slice(5));
+          if(p.type==='text' && p.text && resultEl) {
+            text += p.text;
+            resultEl.textContent = text;
+          }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    if(area) area.innerHTML = '<div style="padding:12px;color:var(--danger)">분석 실패: ' + e.message + '</div>';
+  }
+}
+
+// ── 차트분석 듀얼 AI ──
+async function sendDualAI(imgDataList, question) {
+  const area = document.getElementById('chat-chart');
+
+  // 두 AI 결과 박스 생성
+  const wrap = document.createElement('div');
+  wrap.className = 'dual-ai-wrap';
+
+  const geminiBox = document.createElement('div');
+  geminiBox.className = 'ai-result-box';
+  geminiBox.innerHTML = '<div class="ai-result-label">🟢 Gemini</div><div class="ai-result-text" id="dual-gemini">분석 중...</div>';
+
+  const claudeBox = document.createElement('div');
+  claudeBox.className = 'ai-result-box';
+  claudeBox.innerHTML = '<div class="ai-result-label">🟣 Claude</div><div class="ai-result-text" id="dual-claude">분석 중...</div>';
+
+  wrap.appendChild(geminiBox);
+  wrap.appendChild(claudeBox);
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+
+  const sysPrompt = getSysPrompt('chart');
+  const msgs = [{
+    role:'user',
+    content: imgDataList.length > 0
+      ? [...imgDataList.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})), {type:'text',text:question||'차트 분석해줘'}]
+      : question || '차트 분석해줘'
+  }];
+
+  // Gemini + Claude 동시 호출
+  const [gRes, cRes] = await Promise.allSettled([
+    fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'gemini',max_tokens:800,system:sysPrompt,messages:msgs})}),
+    fetch('/api/chat-claude', {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude',max_tokens:800,system:sysPrompt,messages:msgs})})
+  ]);
+
+  // Gemini 스트리밍
+  if(gRes.status==='fulfilled' && gRes.value.ok) {
+    const reader = gRes.value.body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    const el = document.getElementById('dual-gemini');
+    while(true) {
+      const {done,value} = await reader.read();
+      if(done) break;
+      for(const line of decoder.decode(value).split('\n')) {
+        if(!line.startsWith('data:')) continue;
+        try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+      }
+    }
+  } else {
+    const el = document.getElementById('dual-gemini');
+    if(el) el.textContent = 'Gemini 분석 실패';
+  }
+
+  // Claude 스트리밍
+  if(cRes.status==='fulfilled' && cRes.value.ok) {
+    const reader = cRes.value.body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    const el = document.getElementById('dual-claude');
+    while(true) {
+      const {done,value} = await reader.read();
+      if(done) break;
+      for(const line of decoder.decode(value).split('\n')) {
+        if(!line.startsWith('data:')) continue;
+        try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+      }
+    }
+  } else {
+    const el = document.getElementById('dual-claude');
+    if(el) el.textContent = 'Claude 분석 실패';
+  }
+}
+
+function fetchPortfolio() {
+  if(stocks.length === 0) return;
+  const st = document.getElementById('portfolio-status');
+  if(st) st.textContent = '불러오는 중...';
+
+  const sel = document.getElementById('chart-stock-select');
+  if(sel) {
+    const prev = sel.value;
+    sel.innerHTML = '<option value="total">내 총액(가상)</option>';
+    stocks.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.name; o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    sel.value = prev || 'total';
+  }
+
+  const stocksWithCode = stocks.map(s => ({
+    name: s.name, qty: s.qty,
+    stockCode: s.stockCode || alertData[s.name]?.stockCode || null
+  }));
+  const cash = parseInt(localStorage.getItem('cash')) || 0;
+
+  fetch('/api/portfolio', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({stocks: stocksWithCode, cash})
+  }).then(r=>r.json()).then(d=>{
+    portfolioData = d;
+    const dateInput = document.getElementById('chart-base-date');
+    if(dateInput && !dateInput.value && d.rawDates?.length) {
+      dateInput.value = d.rawDates[0];
+    }
+    drawPortfolioChart();
+  }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
+}
+
+function drawPortfolioChart() {
+  if(!portfolioData) return;
+  const { dates, rawDates, kospi, kosdaq, portfolio, individual } = portfolioData;
+  const sel = document.getElementById('chart-stock-select')?.value || 'total';
+  const myRaw = sel === 'total' ? portfolio : (individual?.[sel] || null);
+  const myLabel = sel === 'total' ? '내 총액(가상)' : sel;
+  const lEl = document.getElementById('legend-my');
+  if(lEl) lEl.textContent = myLabel;
+
+  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
+  if(N < 2) return;
+
+  const baseDate = document.getElementById('chart-base-date')?.value || '';
+  let bi = 0;
+  if(baseDate && rawDates) {
+    for(let i=0;i<N;i++) { if(rawDates[i]&&rawDates[i]>=baseDate){bi=i;break;} }
+  }
+
+  const norm = (arr) => {
+    if(!arr||arr.length<1) return Array(N).fill(null);
+    const base=arr[bi]; if(!base) return Array(N).fill(null);
+    return Array.from({length:N},(_,i)=>{ const v=arr[i]; return v!=null?Math.round(v/base*1000)/10:null; });
+  };
+
+  const trimDates = (dates||[]).slice(0,N);
+  const rK=norm(kospi), rQ=norm(kosdaq), rM=norm(myRaw);
+
+  // 하단 수치
+  const last=(arr)=>{for(let i=N-1;i>=0;i--)if(arr&&arr[i]!=null)return arr[i];return null;};
+  const fmt=v=>v!=null?(v>=100?'+':'')+(v-100).toFixed(1)+'%':'-';
+  const st=document.getElementById('portfolio-status');
+  if(st){
+    let h='';
+    const lM=last(rM),lK=last(rK),lQ=last(rQ);
+    if(lM!=null) h+='<span style="color:#FF3B30">'+myLabel+' '+fmt(lM)+'</span> &nbsp; ';
+    h+='<span style="color:#007AFF">코스피 '+fmt(lK)+'</span> &nbsp; ';
+    h+='<span style="color:#34C759">코스닥 '+fmt(lQ)+'</span>';
+    st.innerHTML=h;
+  }
+
+  const canvas=document.getElementById('portfolio-canvas');
+  if(!canvas) return;
+  if(window._portfolioChart){window._portfolioChart.destroy();window._portfolioChart=null;}
+
+  // 기준일 수직선 플러그인
+  const baseLinePlugin = {
+    id:'baseLine',
+    afterDraw(chart) {
+      if(bi<=0) return;
+      const ctx2=chart.ctx, xs=chart.scales.x, ys=chart.scales.y;
+      const x=xs.getPixelForValue(bi);
+      ctx2.save();
+      ctx2.strokeStyle='rgba(200,200,200,0.7)'; ctx2.lineWidth=1.5; ctx2.setLineDash([4,4]);
+      ctx2.beginPath(); ctx2.moveTo(x,ys.top); ctx2.lineTo(x,ys.bottom); ctx2.stroke();
+      ctx2.setLineDash([]);
+      const label=trimDates[bi]||'';
+      ctx2.font='bold 9px sans-serif'; ctx2.textAlign='center';
+      const tw=ctx2.measureText(label).width;
+      ctx2.fillStyle='rgba(0,0,0,0.6)';
+      ctx2.fillRect(x-tw/2-3,ys.top,tw+6,14);
+      ctx2.fillStyle='#fff'; ctx2.fillText(label,x,ys.top+10);
+      ctx2.restore();
+    }
+  };
+
+  window._portfolioChart = new Chart(canvas, {
+    type:'line',
+    plugins:[baseLinePlugin],
+    data:{
+      labels: trimDates,
+      datasets:[
+        {label:myLabel, data:rM, borderColor:'#FF3B30', borderWidth:1.5, pointRadius:0, tension:0.2, spanGaps:true},
+        {label:'코스피', data:rK, borderColor:'#007AFF', borderWidth:1.5, pointRadius:0, tension:0.2, spanGaps:true},
+        {label:'코스닥', data:rQ, borderColor:'#34C759', borderWidth:1.5, pointRadius:0, tension:0.2, spanGaps:true}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index', intersect:false,
+          callbacks:{label:ctx=>ctx.dataset.label+': '+(ctx.raw!=null?(ctx.raw-100).toFixed(1)+'%':'-')}
+        }
+      },
+      scales:{
+        x:{ticks:{font:{size:9},color:'rgba(128,128,128,0.7)',maxTicksLimit:6,maxRotation:0},grid:{color:'rgba(128,128,128,0.1)'}},
+        y:{ticks:{font:{size:9},color:'rgba(128,128,128,0.7)',callback:v=>v.toFixed(1)},grid:{color:'rgba(128,128,128,0.1)'}}
+      }
+    }
+  });
+}
+
+function onChartControlChange() {
+  if(portfolioData) drawPortfolioChart();
+}
+
+function updateChartStockSelect() {
+  const sel=document.getElementById('chart-stock-select');
+  if(!sel) return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="total">내 총액(가상)</option>';
+  stocks.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
+  if(prev) sel.value=prev;
+}
+
+// ── Init ──
+renderStocks();
+fetchMacro();
+fetchNews();
+loadAlertSettings();
+fetchStockAlert();
+
+// 파일 input 이벤트
+(function() {
+  ['file-info','file-briefing','file-chart'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('change', function(e) {
+      if(!e.target.files?.length) return;
+      if(id==='file-info') handleFileInfo(e);
+      else if(id==='file-briefing') handleFile(e,'briefing');
+      else if(id==='file-chart') handleFile(e,'chart');
+    });
+    el.addEventListener('click', function(){ this.value=''; });
+  });
+})();
+
 </script>
 </body>
-
 </html>
