@@ -845,9 +845,9 @@ async function fetchMacro() {
 
 // ── Context ──
 function getUserCtx() {
-  const career = document.getElementById('career')?.value||'입문';
-  const style  = document.getElementById('style')?.value||'중립형';
-  const sector = document.getElementById('sector')?.value||'반도체';
+  const career = '입문';
+  const style  = '중립형';
+  const sector = '전체';
   const slist  = stocks.length ? stocks.map(s=>`${s.name} ${s.qty}주 평단 ${s.avg.toLocaleString()}원`).join(' / ') : '미설정';
   const news   = cachedNews.slice(0,5).map(n=>n.title).join(' | ')||'없음';
   return `[사용자] 경력:${career} | 성향:${style} | 관심섹터:${sector}\n보유종목: ${slist}\n[시장지표] ${macroDataStr||'로딩중'}\n[주요뉴스] ${news}`;
@@ -1363,7 +1363,8 @@ function loadAlertSettings() {
   const model   = localStorage.getItem('ai-model') || 'gemini';
 
   document.getElementById('alert-enabled').checked = enabled;
-  document.getElementById('alert-enabled-label').textContent = enabled ? '사용 중' : '사용 안 함';
+  const alertLabelEl = document.getElementById('alert-enabled-label');
+  if(alertLabelEl) alertLabelEl.textContent = enabled ? '사용 중' : '사용 안 함';
   document.getElementById('alert-options').style.display = enabled ? 'block' : 'none';
   document.getElementById('alert-bulk').checked = bulk;
   document.getElementById('alert-bulk-label').textContent = bulk ? '일괄 설정' : '종목별 개별 설정';
