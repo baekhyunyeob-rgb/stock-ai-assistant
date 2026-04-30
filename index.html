@@ -670,8 +670,8 @@ async function callBriefingAnalysis() {
   box.style.display = 'block';
   resultEl.textContent = '분석 중...';
 
-  const MODEL = getSelectedModel();
-  const apiEndpoint = MODEL === 'claude' ? '/api/chat-claude' : '/api/chat';
+  const selectedModel = getSelectedModel();
+  const apiEndpoint = selectedModel === 'claude' ? '/api/chat-claude' : '/api/chat';
   const prompt = getSysPrompt('briefing');
   const userMsg = curTimeTab + ' 시황을 내 보유종목 관점에서 원인·영향 중심으로 해설해줘. 보유종목 관련 뉴스도 포함해줘.';
 
@@ -679,7 +679,7 @@ async function callBriefingAnalysis() {
     const res = await fetch(apiEndpoint, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: MODEL, max_tokens: 800,
+        model: selectedModel, max_tokens: 800,
         system: prompt,
         messages: [{role:'user', content: userMsg}]
       })
@@ -1070,7 +1070,7 @@ async function callClaude(screen, userText, isAuto=false) {
     const apiEndpoint = model === 'claude' ? '/api/chat-claude' : API;
     const res=await fetch(apiEndpoint,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen],useSearch:screen==='discovery'})
+      body:JSON.stringify({model:model,max_tokens:1000,system:getSysPrompt(screen),messages:histories[screen],useSearch:screen==='discovery'})
     });
     if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'서버 오류');}
     removeTyping(screen);
@@ -1598,14 +1598,14 @@ ${cash ? '예수금: ' + cash.toLocaleString() + '원' : ''}
 
 async function callClaudeTrend(prompt) {
   const area = document.getElementById('trend-analysis');
-  const MODEL = getSelectedModel();
-  const apiEndpoint = MODEL === 'claude' ? '/api/chat-claude' : '/api/chat';
+  const selectedModel = getSelectedModel();
+  const apiEndpoint = selectedModel === 'claude' ? '/api/chat-claude' : '/api/chat';
 
   try {
     const res = await fetch(apiEndpoint, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: MODEL, max_tokens: 1000,
+        model: selectedModel, max_tokens: 1000,
         system: getSysPrompt('briefing'),
         messages: [{role:'user', content: prompt}]
       })
