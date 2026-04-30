@@ -1726,11 +1726,7 @@ function fetchPortfolio() {
       dateInput.value = d.rawDates[0];
     }
     drawPortfolioChart();
-    // 그래프 완료 후 자동 AI 분석
-    const trendArea = document.getElementById('trend-analysis');
-    if(trendArea && !trendArea.querySelector('#trend-result')) {
-      setTimeout(() => analyzePortfolioChart(), 500);
-    }
+
   }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
 }
 
