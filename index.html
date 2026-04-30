@@ -262,21 +262,6 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .send-btn{width:38px;height:38px;border-radius:50%;background:var(--info);border:none;color:#fff;font-size:19px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,122,255,.35);transition:opacity .15s;}
 .send-btn:disabled{opacity:.35;cursor:default;box-shadow:none}
 
-/* STEP BOTTOM (discovery) */
-.step-bottom{flex-shrink:0;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:.5px solid var(--border);padding:10px 14px 6px;}
-@media(prefers-color-scheme:dark){.step-bottom{background:rgba(28,28,30,.92)}}
-.step-nodes{display:flex;align-items:center;margin-bottom:8px}
-.step-node{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--text3);font-weight:500}
-.step-circle{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);font-size:11px;font-weight:700;color:var(--text3);display:flex;align-items:center;justify-content:center;transition:all .3s;}
-.step-circle.done{background:var(--info);border-color:var(--info);color:#fff}
-.step-circle.active{border-color:var(--info);color:var(--info);background:var(--info-bg)}
-.step-line{flex:1;height:1.5px;background:var(--border2);margin:0 3px;margin-bottom:14px;transition:background .3s}
-.step-line.done{background:var(--info)}
-.step-nav-row{display:flex;gap:8px;margin-bottom:4px}
-.step-nav-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .18s;}
-.step-nav-btn.primary{background:var(--info);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(0,122,255,.3)}
-.step-nav-btn:disabled{opacity:.3;cursor:default;box-shadow:none}
-
 /* ERROR / MODAL */
 .error-msg{background:var(--danger-bg);color:var(--danger);padding:10px 14px;font-size:13px;border-radius:10px;border:.5px solid rgba(255,59,48,.2)}
 .modal-bg{position:absolute;inset:0;z-index:0}
@@ -293,7 +278,6 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .modal-btns button{flex:1;padding:14px;border-radius:10px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;border:none;}
 .btn-cancel{background:var(--bg2);color:var(--text2)}
 .btn-confirm{background:var(--info);color:#fff}
-
 
 /* ── 모달 ── */
 .modal-box{background:var(--bg1);border-radius:16px;width:calc(100% - 40px);max-width:380px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;z-index:1}
@@ -618,23 +602,22 @@ const COST_OUT = 15 / 1_000_000; // $15 per 1M output tokens
 
 let stocks = JSON.parse(localStorage.getItem('stocks') || '[]');
 
-const histories = {info:[],config:[],briefing:[],chart:[],discovery:[]};
+const histories = {info:[],briefing:[],chart:[]};
 const tokens = {
   briefing:{in:0,out:0,calls:0},
   chart:{in:0,out:0,calls:0},
-  discovery:{in:0,out:0,calls:0}
 };
 const pendingImgs = {info:[],briefing:[],chart:[]};
 let curTimeTab = '개장 전';
-let selectedDiscTypes = new Set();
-let curStep = 0;
+
+
 let editingIdx = -1;
 let cachedNews = [];
-let newsDisplayIdx = 0;
-let lastNewsEl = null;
+
+
 let macroDataStr = '';
 let alertData = {}; // 종목별 등락 데이터
-let stepSummaries = {}; // 단계별 요약 저장 {1:'요약', 2:'요약', ...}
+ 
 
 // ── Nav ──
 function switchScreen(name, btn) {
@@ -697,7 +680,7 @@ async function callBriefingAnalysis() {
         try {
           const raw = line.slice(5).trim();
           const p = JSON.parse(raw);
-          if(p.type==='text' && p.text) { text += p.text; resultEl.textContent = text; }
+          if(p.text) { text += p.text; resultEl.textContent = text; }
         } catch(e) {}
       }
     }
@@ -820,13 +803,7 @@ function confirmStock() {
 }
 
 // ── Time tabs ──
-function setTimeTab(btn, label) {
-  document.querySelectorAll('#time-tabs .tab-chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); curTimeTab=label;
-  histories.briefing=[]; 
-  document.getElementById('chat-briefing').innerHTML='<div class="msg system">'+label+' 시황 브리핑을 시작합니다...</div>';
-  autoGreet('briefing');
-}
+
 
 // ── Discovery tabs (multi-select) ──
 
@@ -863,7 +840,7 @@ function renderBoard() {
       : new Date(n.date).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}).replace('. ','.')
     ) : '';
     const title = n.title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
-    return `<div class="board-item" onclick="onBoardTap(${i})">
+    return `<div class="board-item" >
       ${badge}
       <span class="board-corp">${n.corp_name}</span>
       <span class="board-title-text">${title}</span>
@@ -883,26 +860,6 @@ function startNewsTicker() {
   renderBoard();
 }
 
-function onNewsTap(filterType) {
-  if (cachedNews.length===0) return;
-  const area = document.getElementById('chat-briefing');
-  // 이전 뉴스 메시지 제거
-  const prev = area.querySelector('.news-detail-msg');
-  if (prev) prev.remove();
-  const news = cachedNews[newsDisplayIdx % cachedNews.length];
-  newsDisplayIdx++;
-  const div = document.createElement('div');
-  div.className = 'msg system news-detail-msg';
-  div.style.textAlign='left';
-  div.innerHTML = `📰 <strong>${news.query}</strong> 관련<br>${news.title}`;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-  // 브리핑 화면으로 이동
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('screen-briefing').classList.add('active');
-  document.querySelectorAll('.nav-btn')[1].classList.add('active');
-}
 
 // ── Macro ──
 async function fetchMacro() {
@@ -1001,19 +958,9 @@ ${ctx}`;
 
 비교 요청 시에만 비교. 그 외엔 각 차트 독립 분석.
 인사말 금지. 바로 분석 시작.`;
-  if (screen==='discovery') {
-    // 종목발굴은 보유종목과 무관 - 시장 전체 기준
-    const macroOnly = `[시장지표] ${macroDataStr||'로딩중'}`;
-    return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다.
-중요: 종목발굴은 사용자 보유종목과 완전히 무관하게 한국 증시 전체에서 분석합니다.
-보유종목을 언급하거나 참고하지 마세요.
-인사말 금지. 마크다운 금지. 바로 핵심부터.
-${macroOnly}`;
-  }
-  if (screen==='discovery_old') return `당신은 한국 주식 가치투자 전문 AI 어시스턴트입니다. 입문자가 이해하도록 단계별 분석을 쉬운 언어로 제공하세요.\n${ctx}`;
+
   return base;
 }
-
 
 
 // ── Chat UI ──
@@ -1113,14 +1060,7 @@ async function callClaude(screen, userText, isAuto=false) {
             if(tokens[screen]) updateTok(screen,p.inputTokens||0,p.outputTokens||0);
             histories[screen].push({role:'assistant',content:fullText});
 
-            // 종목발굴: 단계 완료 시 요약 저장
-            if(screen==='discovery' && curStep>=1 && curStep<=5) {
-              // 답변의 첫 3줄을 요약으로 저장
-              const lines = fullText.split('\n').filter(l=>l.trim()).slice(0,3);
-              stepSummaries[curStep] = lines.join(' / ').slice(0,200);
-            }
-
-            // 컨텍스트 윈도우 고정: 최근 10개 메시지만 유지
+// 컨텍스트 윈도우 고정: 최근 10개 메시지만 유지
             if(histories[screen].length > 10) {
               const first = histories[screen][0]; // 첫 메시지 보존 (요약 컨텍스트)
               histories[screen] = [first, ...histories[screen].slice(-9)];
@@ -1177,9 +1117,6 @@ async function callClaude(screen, userText, isAuto=false) {
   if(btn)btn.disabled=false;
 }
 
-function autoGreet(screen){
-  callClaude(screen,`${curTimeTab} 시황을 내 보유종목 관점에서 원인·영향 중심으로 해설해줘. 보유종목 관련 뉴스도 포함해줘.`,true);
-}
 
 // ── Input ──
 function handleKey(e,screen){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(screen)}}
@@ -1263,11 +1200,7 @@ async function handleFileInfo(e) {
   if(prev) { prev.style.display='none'; prev.innerHTML=''; }
   pendingImgs['info'] = [];
 }
-function handlePaste(e,screen){
-  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
-  if(!items.length)return; e.preventDefault();
-  addImages(items.map(i=>i.getAsFile()).filter(Boolean),screen);
-}
+
 async function addImages(files,screen){
   if(!pendingImgs[screen])pendingImgs[screen]=[];
   for(const file of files){
@@ -1495,8 +1428,6 @@ async function fetchStockAlert() {
 let portfolioData = null;
 
 
-
-
 // ── Init ──
 renderStocks();
 fetchMacro();
@@ -1629,7 +1560,7 @@ async function callClaudeTrend(prompt) {
         if(!line.startsWith('data:')) continue;
         try {
           const p = JSON.parse(line.slice(5).trim());
-          if(p.type==='text' && p.text && resultEl) {
+          if(p.text && resultEl) {
             text += p.text;
             resultEl.textContent = text;
           }
@@ -1686,7 +1617,7 @@ async function sendDualAI(imgDataList, question) {
       if(done) break;
       for(const line of decoder.decode(value).split('\n')) {
         if(!line.startsWith('data:')) continue;
-        try { const p=JSON.parse(line.slice(5).trim()); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+        try { const p=JSON.parse(line.slice(5).trim()); if(p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
   } catch(e) {
@@ -1719,7 +1650,7 @@ async function requestClaudeAnalysis() {
       if(done) break;
       for(const line of decoder.decode(value).split('\n')) {
         if(!line.startsWith('data:')) continue;
-        try { const p=JSON.parse(line.slice(5).trim()); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+        try { const p=JSON.parse(line.slice(5).trim()); if(p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
   } catch(e) {
@@ -1862,18 +1793,6 @@ function drawPortfolioChart() {
   });
 }
 
-function onChartControlChange() {
-  if(portfolioData) drawPortfolioChart();
-}
-
-function updateChartStockSelect() {
-  const sel=document.getElementById('chart-stock-select');
-  if(!sel) return;
-  const prev=sel.value;
-  sel.innerHTML='<option value="total">내 총액(가상)</option>';
-  stocks.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
-  if(prev) sel.value=prev;
-}
 
 // ── Init ──
 renderStocks();

@@ -32,11 +32,8 @@ export default async function handler(req, res) {
       geminiContents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
     });
 
-    // 종목발굴(discovery)에서는 Google 검색 연동
-    const useSearch = req.body?.useSearch === true;
     const geminiBody = {
       contents: geminiContents,
-      ...(useSearch ? { tools: [{ google_search: {} }] } : {}),
       generationConfig: { maxOutputTokens: max_tokens || 1000, temperature: 0.7 }
     };
 
