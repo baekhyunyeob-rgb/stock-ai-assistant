@@ -496,9 +496,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:2px">* 현재 보유종목을 기간 내내 보유했다고 가정한 가상 수치</div>
   </div>
   <!-- AI 분석 결과 -->
-  <div class="panel-scroll" id="trend-analysis">
-    <div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">AI 분석 버튼을 탭하면 포트폴리오를 분석해드립니다</div>
-  </div>
+  <div class="panel-scroll" id="trend-analysis"></div>
 </div>
 
 <!-- ═══ SCREEN 3: 브리핑 ═══ -->
@@ -523,7 +521,12 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     <div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>
   </div>
 
-  <!-- 채팅 -->
+  <!-- AI 자동 분석 결과 -->
+  <div id="briefing-analysis" style="flex-shrink:0;padding:12px 14px;border-bottom:.5px solid var(--border);display:none">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">🤖 AI 브리핑</div>
+    <div id="briefing-result" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+  </div>
+  <!-- 채팅 (추가 질문용) -->
   <div class="chat-wrap">
     <div class="chat-area" id="chat-briefing"></div>
     <div class="token-bar">
@@ -648,8 +651,8 @@ function switchScreen(name, btn) {
 }
 
 function autoBriefing() {
-  const area = document.getElementById('chat-briefing');
-  if(area && area.children.length > 0) return;
+  const resultEl = document.getElementById('briefing-result');
+  if(resultEl && resultEl.textContent.length > 10) return; // 이미 분석됨
   // 현재 시간대 자동 감지 (KST)
   const h = new Date(Date.now() + 9*3600000).getUTCHours();
   if(h >= 9 && h < 12) curTimeTab = '오전장';
@@ -657,7 +660,49 @@ function autoBriefing() {
   else if(h >= 15 && h < 18) curTimeTab = '애프터마켓';
   else if(h >= 18 || h < 6) curTimeTab = '프리마켓';
   else curTimeTab = '개장 전';
-  autoGreet('briefing');
+  callBriefingAnalysis();
+}
+
+async function callBriefingAnalysis() {
+  const box = document.getElementById('briefing-analysis');
+  const resultEl = document.getElementById('briefing-result');
+  if(!box || !resultEl) return;
+  box.style.display = 'block';
+  resultEl.textContent = '분석 중...';
+
+  const MODEL = getSelectedModel();
+  const apiEndpoint = MODEL === 'claude' ? '/api/chat-claude' : '/api/chat';
+  const prompt = getSysPrompt('briefing');
+  const userMsg = curTimeTab + ' 시황을 내 보유종목 관점에서 원인·영향 중심으로 해설해줘. 보유종목 관련 뉴스도 포함해줘.';
+
+  try {
+    const res = await fetch(apiEndpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: MODEL, max_tokens: 800,
+        system: prompt,
+        messages: [{role:'user', content: userMsg}]
+      })
+    });
+    if(!res.ok) throw new Error('API 오류');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    resultEl.textContent = '';
+    while(true) {
+      const {done, value} = await reader.read();
+      if(done) break;
+      for(const line of decoder.decode(value).split('\n')) {
+        if(!line.startsWith('data:')) continue;
+        try {
+          const p = JSON.parse(line.slice(5));
+          if(p.type==='text' && p.text) { text += p.text; resultEl.textContent = text; }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    resultEl.textContent = '분석 실패: ' + e.message;
+  }
 }
 function switchPanel(name, btn) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1711,7 +1756,7 @@ function fetchPortfolio() {
     drawPortfolioChart();
     // 그래프 완료 후 자동 AI 분석
     const trendArea = document.getElementById('trend-analysis');
-    if(trendArea && trendArea.children.length <= 1) {
+    if(trendArea && !trendArea.querySelector('#trend-result')) {
       setTimeout(() => analyzePortfolioChart(), 500);
     }
   }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
