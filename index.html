@@ -528,7 +528,10 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
     </div>
     <div style="position:relative;height:130px"><canvas id="portfolio-canvas"></canvas></div>
     <div id="portfolio-status" style="font-size:11px;text-align:center;margin-top:3px;color:var(--text3)">불러오는 중...</div>
-    <div style="font-size:10px;color:var(--text3);opacity:0.6;text-align:center;margin-top:1px">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+      <div style="font-size:10px;color:var(--text3);opacity:0.6">* 내 총액은 현재 보유종목을 60일 전부터 보유했다고 가정한 가상 수치</div>
+      <button onclick="analyzePortfolioChart()" style="font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--info-bg);color:var(--info);cursor:pointer;font-family:inherit">AI 분석 💬</button>
+    </div>
   </div>
 
   <div class="token-bar">
@@ -1597,6 +1600,11 @@ async function fetchPortfolio() {
     body: JSON.stringify({stocks: stocksWithCode})
   }).then(r=>r.json()).then(d=>{
     portfolioData = d;
+    // 날짜 기본값: rawDates 첫번째 날짜
+    const dateInput = document.getElementById('chart-base-date');
+    if(dateInput && !dateInput.value && d.rawDates?.length) {
+      dateInput.value = d.rawDates[0];
+    }
     drawPortfolioChart();
   }).catch(()=>{ if(st) st.textContent='차트 로딩 실패'; });
 }
@@ -1773,6 +1781,75 @@ function drawPortfolioChart() {
       }
     }
   });
+}
+
+function analyzePortfolioChart() {
+  if(!portfolioData) return;
+
+  const { dates, rawDates, kospi, kosdaq, portfolio } = portfolioData;
+  const N = Math.min((dates||[]).length, (kospi||[]).length, (kosdaq||[]).length) - 1;
+  if(N < 2) return;
+
+  const baseDate = document.getElementById('chart-base-date')?.value || '';
+  let bi = 0;
+  if(baseDate && rawDates) {
+    for(let i=0; i<N; i++) {
+      if(rawDates[i] && rawDates[i] >= baseDate) { bi = i; break; }
+    }
+  }
+
+  const norm = (arr) => {
+    const base = arr[bi];
+    if(!base) return null;
+    return Math.round((arr[N-1] / base - 1) * 1000) / 10;
+  };
+
+  const pChg = norm(portfolio);
+  const kChg = norm(kospi);
+  const qChg = norm(kosdaq);
+
+  // 구간별 분석
+  const mid = Math.floor((N + bi) / 2);
+  const pMid = portfolio[mid] ? Math.round((portfolio[mid]/portfolio[bi]-1)*1000)/10 : null;
+  const kMid = kospi[mid] ? Math.round((kospi[mid]/kospi[bi]-1)*1000)/10 : null;
+
+  const startDate = dates[bi] || '';
+  const endDate = dates[N-1] || '';
+
+  const analysisCtx = `
+[차트 분석 데이터 — 가상 시나리오 기반]
+※ 중요: 이 수치는 현재 보유종목을 기간 내내 동일하게 보유했다고 가정한 가상 수치입니다.
+실제 매수/매도 시점과 수량이 다르므로 실제 수익률과 차이가 있을 수 있습니다.
+분석 시 이 전제를 반드시 고려하고 사용자에게도 명시해주세요.
+
+기간: ${startDate} ~ ${endDate}
+현재 보유종목(가상 기준): ${stocks.map(s=>s.name).join(', ')}
+내 총액(가상): ${pChg != null ? (pChg>=0?'+':'')+pChg+'%' : '데이터없음'}
+코스피: ${kChg != null ? (kChg>=0?'+':'')+kChg+'%' : '데이터없음'}
+코스닥: ${qChg != null ? (qChg>=0?'+':'')+qChg+'%' : '데이터없음'}
+전반부(${startDate}~${dates[mid]||''}): 내총액(가상) ${pMid!=null?(pMid>=0?'+':'')+pMid+'%':'?'} / 코스피 ${kMid!=null?(kMid>=0?'+':'')+kMid+'%':'?'}
+
+위 가상 데이터를 바탕으로 입문자 관점에서:
+1. 가상 포트폴리오가 지수 대비 어떤 흐름을 보였는지
+2. 어느 구간에서 지수를 앞서거나 뒤처졌는지
+3. 현재 보유종목 구성에 대한 조언 (가상 수치 기반임을 전제로)
+를 직설적으로 해설해줘.`;
+
+  // 브리핑 화면으로 이동해서 AI 분석
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-briefing').classList.add('active');
+  document.querySelectorAll('.nav-btn')[1].classList.add('active');
+
+  // 채팅에 분석 요청
+  const area = document.getElementById('chat-briefing');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.textContent = '내 포트폴리오 차트 분석해줘';
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+
+  callClaude('briefing', analysisCtx);
 }
 
 function onChartControlChange() {
