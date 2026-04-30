@@ -267,7 +267,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 
 /* ERROR / MODAL */
 .error-msg{background:var(--danger-bg);color:var(--danger);padding:10px 14px;font-size:13px;border-radius:10px;border:.5px solid rgba(255,59,48,.2)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;animation:fi .2s}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:0;animation:fi .2s}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 .modal{background:var(--bg1);border-radius:20px 20px 0 0;padding:20px 20px max(32px,env(safe-area-inset-bottom,32px));width:100%;max-width:430px;display:flex;flex-direction:column;gap:12px;animation:su .25s ease-out;}
 @keyframes su{from{transform:translateY(60px)}to{transform:translateY(0)}}
@@ -293,7 +293,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 .portfolio-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .analyze-btn{font-size:11px;padding:3px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--info-bg);color:var(--info);cursor:pointer;font-family:inherit}
 /* ── 차트분석 듀얼 AI ── */
-.dual-ai-wrap{display:flex;gap:8px;padding:8px}
+.dual-ai-wrap{display:flex;flex-direction:column;gap:8px;padding:8px}
 .ai-result-box{flex:1;background:var(--bg1);border-radius:12px;padding:10px;border:.5px solid var(--border)}
 .ai-result-label{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px}
 .ai-result-text{font-size:12px;color:var(--text2);line-height:1.5;white-space:pre-wrap}
@@ -497,14 +497,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
   <div class="board-list" id="board-list">
     <div style="padding:16px;text-align:center;font-size:13px;color:var(--text3)">불러오는 중...</div>
   </div>
-  <!-- 시간대 탭 -->
-  <div class="time-tabs" id="time-tabs">
-    <button class="tab-chip" onclick="setTimeTab(this,'개장 전')">🌅 개장 전</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'프리마켓')">🌙 프리마켓</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오전장')">☀️ 오전장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'오후장')">🌤 오후장</button>
-    <button class="tab-chip" onclick="setTimeTab(this,'애프터마켓')">🌙 애프터마켓</button>
-  </div>
+
   <!-- 채팅 -->
   <div class="chat-wrap">
     <div class="chat-area" id="chat-briefing"></div>
@@ -559,7 +552,7 @@ canvas#portfolio-canvas{width:100%;height:140px;display:block}
 </nav>
 
 <!-- MODAL -->
-<div id="modal" style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center">
+<div id="modal" style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.45)">
   <div class="modal-bg" onclick="closeModal()"></div>
   <div class="modal-box">
     <div class="modal-title-row">
@@ -621,7 +614,21 @@ function switchScreen(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   btn.classList.add('active');
-  // 브리핑은 시간대 탭 선택 시 시작
+  if(name === 'trend' && stocks.length > 0) fetchPortfolio();
+  if(name === 'briefing') autoBriefing();
+}
+
+function autoBriefing() {
+  const area = document.getElementById('chat-briefing');
+  if(area && area.children.length > 0) return;
+  // 현재 시간대 자동 감지 (KST)
+  const h = new Date(Date.now() + 9*3600000).getUTCHours();
+  if(h >= 9 && h < 12) curTimeTab = '오전장';
+  else if(h >= 12 && h < 15) curTimeTab = '오후장';
+  else if(h >= 15 && h < 18) curTimeTab = '애프터마켓';
+  else if(h >= 18 || h < 6) curTimeTab = '프리마켓';
+  else curTimeTab = '개장 전';
+  autoGreet('briefing');
 }
 function switchPanel(name, btn) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1550,46 +1557,43 @@ async function callClaudeTrend(prompt) {
   }
 }
 
-// ── 차트분석 듀얼 AI ──
-async function sendDualAI(imgDataList, question) {
-  const area = document.getElementById('chat-chart');
+// ── 차트분석 - Gemini 먼저, Claude는 선택 ──
+let _lastChartImgs = [];
+let _lastChartQuestion = '';
 
-  // 두 AI 결과 박스 생성
+async function sendDualAI(imgDataList, question) {
+  _lastChartImgs = imgDataList;
+  _lastChartQuestion = question;
+
+  const area = document.getElementById('chat-chart');
   const wrap = document.createElement('div');
   wrap.className = 'dual-ai-wrap';
-
-  const geminiBox = document.createElement('div');
-  geminiBox.className = 'ai-result-box';
-  geminiBox.innerHTML = '<div class="ai-result-label">🟢 Gemini</div><div class="ai-result-text" id="dual-gemini">분석 중...</div>';
-
-  const claudeBox = document.createElement('div');
-  claudeBox.className = 'ai-result-box';
-  claudeBox.innerHTML = '<div class="ai-result-label">🟣 Claude</div><div class="ai-result-text" id="dual-claude">분석 중...</div>';
-
-  wrap.appendChild(geminiBox);
-  wrap.appendChild(claudeBox);
+  wrap.innerHTML = `
+    <div class="ai-result-box">
+      <div class="ai-result-label">🟢 Gemini 분석</div>
+      <div class="ai-result-text" id="dual-gemini">분석 중...</div>
+    </div>
+    <div class="ai-result-box" id="claude-result-box" style="display:none">
+      <div class="ai-result-label">🟣 Claude 분석</div>
+      <div class="ai-result-text" id="dual-claude"></div>
+    </div>
+    <button onclick="requestClaudeAnalysis()" id="claude-req-btn"
+      style="margin:0 8px 8px;padding:8px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text3);font-size:12px;cursor:pointer;font-family:inherit">
+      🟣 Claude 분석 추가 요청
+    </button>`;
   area.appendChild(wrap);
   area.scrollTop = area.scrollHeight;
 
   const sysPrompt = getSysPrompt('chart');
-  const msgs = [{
-    role:'user',
-    content: imgDataList.length > 0
-      ? [...imgDataList.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})), {type:'text',text:question||'차트 분석해줘'}]
-      : question || '차트 분석해줘'
-  }];
+  const msgs = [{role:'user', content: imgDataList.length > 0
+    ? [...imgDataList.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})),{type:'text',text:question||'차트 분석해줘'}]
+    : question||'차트 분석해줘'}];
 
-  // Gemini + Claude 동시 호출
-  const [gRes, cRes] = await Promise.allSettled([
-    fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'gemini',max_tokens:800,system:sysPrompt,messages:msgs})}),
-    fetch('/api/chat-claude', {method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude',max_tokens:800,system:sysPrompt,messages:msgs})})
-  ]);
-
-  // Gemini 스트리밍
-  if(gRes.status==='fulfilled' && gRes.value.ok) {
-    const reader = gRes.value.body.getReader();
+  // Gemini 먼저
+  try {
+    const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'gemini',max_tokens:800,system:sysPrompt,messages:msgs})});
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let text = '';
     const el = document.getElementById('dual-gemini');
@@ -1601,17 +1605,31 @@ async function sendDualAI(imgDataList, question) {
         try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
-  } else {
+  } catch(e) {
     const el = document.getElementById('dual-gemini');
-    if(el) el.textContent = 'Gemini 분석 실패';
+    if(el) el.textContent = 'Gemini 분석 실패: ' + e.message;
   }
+}
 
-  // Claude 스트리밍
-  if(cRes.status==='fulfilled' && cRes.value.ok) {
-    const reader = cRes.value.body.getReader();
+async function requestClaudeAnalysis() {
+  const btn = document.getElementById('claude-req-btn');
+  const box = document.getElementById('claude-result-box');
+  if(btn) btn.style.display = 'none';
+  if(box) box.style.display = 'block';
+
+  const sysPrompt = getSysPrompt('chart');
+  const msgs = [{role:'user', content: _lastChartImgs.length > 0
+    ? [..._lastChartImgs.map(img=>({type:'image',source:{type:'base64',media_type:img.type,data:img.data}})),{type:'text',text:_lastChartQuestion||'차트 분석해줘'}]
+    : _lastChartQuestion||'차트 분석해줘'}];
+
+  try {
+    const res = await fetch('/api/chat-claude', {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude',max_tokens:800,system:sysPrompt,messages:msgs})});
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let text = '';
     const el = document.getElementById('dual-claude');
+    if(el) el.textContent = '분석 중...';
     while(true) {
       const {done,value} = await reader.read();
       if(done) break;
@@ -1620,9 +1638,9 @@ async function sendDualAI(imgDataList, question) {
         try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
-  } else {
+  } catch(e) {
     const el = document.getElementById('dual-claude');
-    if(el) el.textContent = 'Claude 분석 실패';
+    if(el) el.textContent = 'Claude 분석 실패: ' + e.message;
   }
 }
 
