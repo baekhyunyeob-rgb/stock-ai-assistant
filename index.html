@@ -695,7 +695,8 @@ async function callBriefingAnalysis() {
       for(const line of decoder.decode(value).split('\n')) {
         if(!line.startsWith('data:')) continue;
         try {
-          const p = JSON.parse(line.slice(5));
+          const raw = line.slice(5).trim();
+          const p = JSON.parse(raw);
           if(p.type==='text' && p.text) { text += p.text; resultEl.textContent = text; }
         } catch(e) {}
       }
@@ -1040,12 +1041,14 @@ function showTyping(screen) {
 function removeTyping(screen){const el=document.getElementById('typing-'+screen);if(el)el.remove()}
 function updateTok(screen,i,o){
   tokens[screen].in+=i; tokens[screen].out+=o; tokens[screen].calls++;
-  const k={briefing:'b',chart:'c',discovery:'d'}[screen]; if(!k)return;
-  document.getElementById(`t${k}-in`).textContent=tokens[screen].in.toLocaleString();
-  document.getElementById(`t${k}-out`).textContent=tokens[screen].out.toLocaleString();
-  document.getElementById(`t${k}-calls`).textContent=tokens[screen].calls;
+  const ids={briefing:{in:'tb-in',out:'tb-out',calls:'tb-calls',cost:'tb-cost'},
+             chart:{in:'tc-in',out:'tc-out',calls:'tc-calls',cost:'tc-cost'}}[screen];
+  if(!ids) return;
+  document.getElementById(ids.in).textContent=tokens[screen].in.toLocaleString();
+  document.getElementById(ids.out).textContent=tokens[screen].out.toLocaleString();
+  document.getElementById(ids.calls).textContent=tokens[screen].calls;
   const cost=(tokens[screen].in*COST_IN)+(tokens[screen].out*COST_OUT);
-  document.getElementById(`t${k}-cost`).textContent='$'+cost.toFixed(4);
+  document.getElementById(ids.cost).textContent='$'+cost.toFixed(4);
 }
 
 // ── API ──
@@ -1275,6 +1278,10 @@ async function addImages(files,screen){
     const wrap=document.createElement('div'); wrap.className='img-thumb-wrap';
     wrap.innerHTML=`<img class="img-thumb" src="${dataUrl}"><button class="img-remove" onclick="removeImg('${screen}',${idx})">×</button>`;
     prev.appendChild(wrap);
+  }
+  // 차트 화면 이미지 추가 시 자동 분석 시작
+  if(screen === 'chart' && pendingImgs['chart'].length > 0) {
+    setTimeout(() => sendMsg('chart'), 300);
   }
 }
 function removeImg(screen,i){
@@ -1621,7 +1628,7 @@ async function callClaudeTrend(prompt) {
       for(const line of lines) {
         if(!line.startsWith('data:')) continue;
         try {
-          const p = JSON.parse(line.slice(5));
+          const p = JSON.parse(line.slice(5).trim());
           if(p.type==='text' && p.text && resultEl) {
             text += p.text;
             resultEl.textContent = text;
@@ -1638,7 +1645,7 @@ async function callClaudeTrend(prompt) {
 let _lastChartImgs = [];
 let _lastChartQuestion = '';
 
-async function sendDualAI(imgDataList, question) {
+async async function sendDualAI(imgDataList, question) {
   _lastChartImgs = imgDataList;
   _lastChartQuestion = question;
 
@@ -1679,7 +1686,7 @@ async function sendDualAI(imgDataList, question) {
       if(done) break;
       for(const line of decoder.decode(value).split('\n')) {
         if(!line.startsWith('data:')) continue;
-        try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+        try { const p=JSON.parse(line.slice(5).trim()); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
   } catch(e) {
@@ -1712,7 +1719,7 @@ async function requestClaudeAnalysis() {
       if(done) break;
       for(const line of decoder.decode(value).split('\n')) {
         if(!line.startsWith('data:')) continue;
-        try { const p=JSON.parse(line.slice(5)); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
+        try { const p=JSON.parse(line.slice(5).trim()); if(p.type==='text'&&p.text){text+=p.text;if(el)el.textContent=text;} } catch(e){}
       }
     }
   } catch(e) {
